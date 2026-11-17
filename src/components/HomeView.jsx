@@ -517,21 +517,12 @@ export default function HomeView({
 
         {/* Workouts Completed on Selected Date */}
         <div className="pt-2 border-t border-sand-100">
-          <div className="flex items-center justify-between px-1 mb-1.5">
+          <div className="px-1 mb-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-sand-400 block">
               {selectedDayData.isToday
                 ? `Treinos de Hoje (${selectedDayData.fullDayName})`
                 : `Treinos de ${selectedDayData.fullDayName} (${selectedDayData.dayNum})`}
             </span>
-            <button
-              type="button"
-              onClick={() => handleOpenAddModal(selectedDayData.date)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cream-100 hover:bg-roseGold-50 text-roseGold-600 border border-sand-200 hover:border-roseGold-300 text-[11px] font-bold transition active:scale-95 shadow-2xs"
-              title="Adicionar ou registar treino neste dia"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Adicionar</span>
-            </button>
           </div>
 
           {selectedDayData.workouts.length > 0 ? (
@@ -560,6 +551,15 @@ export default function HomeView({
                   </span>
                 </div>
               ))}
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => handleOpenAddModal(selectedDayData.date)}
+                  className="text-[11px] font-bold text-roseGold-600 hover:text-roseGold-700 transition"
+                >
+                  + Registar outro treino neste dia
+                </button>
+              </div>
             </div>
           ) : (
             <div className="p-3.5 rounded-2xl bg-cream-50/70 border border-dashed border-sand-300/80 text-center space-y-2">
