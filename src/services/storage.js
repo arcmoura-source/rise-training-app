@@ -10,12 +10,32 @@ const STORAGE_KEYS = {
   SETTINGS: 'fit_rita_settings',
 };
 
+export const isRitaDomain = () => {
+  if (typeof window === 'undefined') return false;
+  return (
+    import.meta.env.VITE_APP_TARGET === 'rita' ||
+    window.location.hostname.includes('rita')
+  );
+};
+
 export const getProfilesList = () => {
+  const isRita = isRitaDomain();
   try {
     const data = localStorage.getItem(STORAGE_KEYS.PROFILES_LIST);
     if (data) {
       let parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // Se NÃO for o domínio da Rita (ex: telemóvel da mãe ou clientes):
+        // Limpar e expurgar automaticamente o 'perfil-rita' caso tenha ficado em cache
+        if (!isRita) {
+          const filtered = parsed.filter(p => p.id !== 'perfil-rita');
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(filtered));
+          }
+          if (filtered.length > 0) return filtered;
+          return [];
+        }
+
         // Clean up accidental 'rista' profile or accidental onboarding clone
         const hasBadProfile = parsed.some(
           p => p.nome?.toLowerCase() === 'rista' ||
@@ -41,7 +61,11 @@ export const getProfilesList = () => {
     }
   } catch (e) {}
 
-  // Initialize with Rita's profile
+  if (!isRita) {
+    return [];
+  }
+
+  // Initialize with Rita's profile only on Rita's personal domain
   const initial = [DEFAULT_PROFILE];
   localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(initial));
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, 'perfil-rita');
@@ -50,7 +74,8 @@ export const getProfilesList = () => {
 };
 
 export const deleteProfile = (profileId) => {
-  if (profileId === 'perfil-rita') return getProfilesList();
+  const isRita = isRitaDomain();
+  if (isRita && profileId === 'perfil-rita') return getProfilesList();
   try {
     const list = getProfilesList();
     const updated = list.filter(p => p.id !== profileId);
@@ -58,8 +83,17 @@ export const deleteProfile = (profileId) => {
     localStorage.removeItem('fit_history_' + profileId);
     const activeId = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID);
     if (activeId === profileId) {
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, 'perfil-rita');
-      localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(DEFAULT_PROFILE));
+      const nextActive = updated[0];
+      if (nextActive) {
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, nextActive.id);
+        localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(nextActive));
+      } else if (isRita) {
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, 'perfil-rita');
+        localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(DEFAULT_PROFILE));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROFILE_ID);
+        localStorage.removeItem(STORAGE_KEYS.PROFILE);
+      }
     }
     return updated;
   } catch (e) {
@@ -68,9 +102,28 @@ export const deleteProfile = (profileId) => {
 };
 
 export const getProfile = () => {
+  const isRita = isRitaDomain();
   try {
     const list = getProfilesList();
     const activeId = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID);
+
+    // No domínio de clientes (não-Rita):
+    if (!isRita) {
+      if (!activeId || activeId === 'perfil-rita' || !list.some(p => p.id === activeId)) {
+        if (list.length > 0) {
+          const first = list[0];
+          localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, first.id);
+          localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(first));
+          return first;
+        }
+        return null;
+      }
+      const found = list.find((p) => p.id === activeId);
+      if (found) return found;
+      return list[0] || null;
+    }
+
+    // No domínio pessoal da Rita:
     if (!activeId || !list.some(p => p.id === activeId)) {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, 'perfil-rita');
       const rita = list.find(p => p.id === 'perfil-rita') || DEFAULT_PROFILE;
@@ -99,7 +152,7 @@ export const getProfile = () => {
 
     return list[0] || DEFAULT_PROFILE;
   } catch (e) {
-    return DEFAULT_PROFILE;
+    return isRita ? DEFAULT_PROFILE : null;
   }
 };
 
