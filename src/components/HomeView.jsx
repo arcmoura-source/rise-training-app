@@ -957,6 +957,7 @@ export default function HomeView({
         onClose={() => setIsAddModalOpen(false)}
         initialDate={modalTargetDate}
         workouts={workouts}
+        profile={profile}
         onSaveActivity={onLogActivity}
       />
     </div>

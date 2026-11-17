@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Plus,
@@ -12,10 +12,12 @@ import {
   Calendar,
   CheckCircle2,
   ExternalLink,
-  ChevronRight,
+  Info,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+// Tabela de MET (Metabolic Equivalent of Task) para cálculo de gasto calórico:
+// Fórmula: Calorias = MET * Peso (kg) * (Duração em minutos / 60)
 const ACTIVITY_PRESETS = [
   {
     id: 'caminhada',
@@ -23,9 +25,7 @@ const ACTIVITY_PRESETS = [
     icon: Footprints,
     defaultTitle: 'Caminhada ao Ar Livre',
     defaultDuration: 45,
-    kcalPerMin: 4.2,
-    color: 'from-amber-400 to-amber-500',
-    bgLight: 'bg-amber-50 text-amber-700 border-amber-200',
+    met: 3.8, // Caminhada moderada / rápida (~4.8 km/h)
     tipo: 'Caminhada',
     foco: 'Cardio & Mobilidade',
   },
@@ -35,9 +35,7 @@ const ACTIVITY_PRESETS = [
     icon: Flame,
     defaultTitle: 'Corrida Contínua',
     defaultDuration: 30,
-    kcalPerMin: 9.5,
-    color: 'from-rose-500 to-rose-600',
-    bgLight: 'bg-rose-50 text-rose-700 border-rose-200',
+    met: 9.0, // Corrida a ritmo constante (~9-10 km/h)
     tipo: 'Corrida',
     foco: 'Cardio & Resistência',
   },
@@ -47,9 +45,7 @@ const ACTIVITY_PRESETS = [
     icon: Bike,
     defaultTitle: 'Aula de Spinning / Bike',
     defaultDuration: 45,
-    kcalPerMin: 8.5,
-    color: 'from-indigo-500 to-indigo-600',
-    bgLight: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    met: 8.5, // Ciclismo indoor / spinning com intervalos
     tipo: 'Spinning',
     foco: 'Ciclismo & Alta Intensidade',
   },
@@ -59,9 +55,7 @@ const ACTIVITY_PRESETS = [
     icon: LinkIcon,
     defaultTitle: 'Treino Online / YouTube',
     defaultDuration: 30,
-    kcalPerMin: 6.5,
-    color: 'from-roseGold-400 to-roseGold-600',
-    bgLight: 'bg-roseGold-50 text-roseGold-700 border-roseGold-200',
+    met: 7.0, // Treinos guiados tipo Pilates intenso, HIIT ou força com halteres
     tipo: 'Vídeo Online',
     foco: 'Treino Guiado',
   },
@@ -71,9 +65,7 @@ const ACTIVITY_PRESETS = [
     icon: Dumbbell,
     defaultTitle: 'Treino de Ginásio',
     defaultDuration: 50,
-    kcalPerMin: 6.0,
-    color: 'from-emerald-500 to-emerald-600',
-    bgLight: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    met: 5.5, // Musculação com cargas moderadas a pesadas e descansos
     tipo: 'Ginásio',
     foco: 'Musculação & Hipertrofia',
   },
@@ -83,9 +75,7 @@ const ACTIVITY_PRESETS = [
     icon: Sparkles,
     defaultTitle: 'Atividade Física',
     defaultDuration: 40,
-    kcalPerMin: 5.5,
-    color: 'from-slate-600 to-slate-700',
-    bgLight: 'bg-cream-100 text-sand-500 border-sand-200',
+    met: 5.0, // Natação moderada, padel, dança, etc.
     tipo: 'Outro',
     foco: 'Condicionamento',
   },
@@ -104,6 +94,7 @@ export default function AddActivityModal({
   onClose,
   initialDate,
   workouts = [],
+  profile,
   onSaveActivity,
 }) {
   const [selectedPresetId, setSelectedPresetId] = useState('caminhada');
@@ -113,6 +104,8 @@ export default function AddActivityModal({
   });
   const [title, setTitle] = useState('Caminhada ao Ar Livre');
   const [duration, setDuration] = useState(45);
+  const [calories, setCalories] = useState('');
+  const [isCaloriesCustom, setIsCaloriesCustom] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [youtubeInfo, setYoutubeInfo] = useState(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
@@ -120,6 +113,19 @@ export default function AddActivityModal({
   const [distanceKm, setDistanceKm] = useState('');
   const [notes, setNotes] = useState('');
   const [intensity, setIntensity] = useState('Moderada');
+
+  const currentPreset =
+    ACTIVITY_PRESETS.find((p) => p.id === selectedPresetId) || ACTIVITY_PRESETS[0];
+
+  // Peso corporal do utilizador (default 58 kg)
+  const userWeight = profile?.peso ? Number(profile.peso) : 58;
+
+  // Cálculo da estimativa científica (MET * peso * horas)
+  const autoEstimatedCalories = useMemo(() => {
+    const hours = (Number(duration) || 0) / 60;
+    const est = Math.round(currentPreset.met * userWeight * hours);
+    return Math.max(10, est);
+  }, [duration, currentPreset.met, userWeight]);
 
   // Atualizar data inicial quando o modal abre
   useEffect(() => {
@@ -129,9 +135,17 @@ export default function AddActivityModal({
     }
   }, [initialDate, isOpen]);
 
-  // Atualizar título e duração ao trocar de preset
+  // Atualizar as calorias sugeridas automaticamente quando a duração ou tipo mudam (se o utilizador não tiver editado manualmente)
+  useEffect(() => {
+    if (!isCaloriesCustom) {
+      setCalories(String(autoEstimatedCalories));
+    }
+  }, [autoEstimatedCalories, isCaloriesCustom]);
+
+  // Atualizar título, duração e calorias ao trocar de preset
   const handleSelectPreset = (preset) => {
     setSelectedPresetId(preset.id);
+    setIsCaloriesCustom(false);
 
     if (preset.id === 'ginasio' && workouts.length > 0) {
       const first = workouts[0];
@@ -140,7 +154,7 @@ export default function AddActivityModal({
       setDuration(50);
     } else if (preset.id === 'link') {
       setTitle(youtubeInfo?.title || preset.defaultTitle);
-      setDuration(youtubeInfo?.duration || preset.defaultDuration);
+      setDuration(preset.defaultDuration);
     } else {
       setTitle(preset.defaultTitle);
       setDuration(preset.defaultDuration);
@@ -190,12 +204,6 @@ export default function AddActivityModal({
 
   if (!isOpen) return null;
 
-  const currentPreset =
-    ACTIVITY_PRESETS.find((p) => p.id === selectedPresetId) || ACTIVITY_PRESETS[0];
-
-  // Cálculo automático de calorias estimadas
-  const estimatedCalories = Math.round((Number(duration) || 0) * currentPreset.kcalPerMin);
-
   // Formatação da data para apresentação amigável
   const dateObj = new Date(customDate + 'T12:00:00');
   const dateFormatted = dateObj.toLocaleDateString('pt-PT', {
@@ -212,6 +220,8 @@ export default function AddActivityModal({
     const [y, m, d] = customDate.split('-').map(Number);
     const activityDate = new Date(y, m - 1, d, 12, 0, 0);
 
+    const finalCalories = calories !== '' ? Number(calories) : autoEstimatedCalories;
+
     const newActivity = {
       id: `act-${Date.now()}`,
       data: activityDate.toISOString(),
@@ -219,7 +229,7 @@ export default function AddActivityModal({
       treinoId: selectedPresetId === 'ginasio' ? selectedGymWorkoutId : `custom-${selectedPresetId}`,
       tipo: currentPreset.tipo,
       duracaoMinutos: Number(duration),
-      caloriasEstimadas: estimatedCalories,
+      caloriasEstimadas: isNaN(finalCalories) ? autoEstimatedCalories : finalCalories,
       distanciaKm: distanceKm ? parseFloat(distanceKm) : null,
       foco: currentPreset.foco,
       link: videoUrl.trim() || null,
@@ -392,7 +402,7 @@ export default function AddActivityModal({
             />
           </div>
 
-          {/* Duração & Calorias */}
+          {/* Duração & Calorias (Campo de Calorias agora editável livremente!) */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block mb-1">
@@ -405,7 +415,10 @@ export default function AddActivityModal({
                   max="300"
                   required
                   value={duration}
-                  onChange={(e) => setDuration(Math.max(1, parseInt(e.target.value) || 0))}
+                  onChange={(e) => {
+                    const val = Math.max(1, parseInt(e.target.value) || 0);
+                    setDuration(val);
+                  }}
                   className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
                 />
                 <span className="absolute right-3 top-2.5 text-xs text-sand-400">min</span>
@@ -413,17 +426,42 @@ export default function AddActivityModal({
             </div>
 
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block mb-1">
-                Calorias Est.
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block">
+                  Calorias
+                </label>
+                {isCaloriesCustom && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCalories(String(autoEstimatedCalories));
+                      setIsCaloriesCustom(false);
+                    }}
+                    className="text-[10px] text-roseGold-600 font-bold hover:underline"
+                    title="Repor valor estimado"
+                  >
+                    Repor
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <input
-                  type="text"
-                  readOnly
-                  value={`~${estimatedCalories} kcal`}
-                  className="w-full px-3 py-2 rounded-xl bg-cream-100 border border-sand-200 text-xs font-bold text-sand-500 cursor-not-allowed"
+                  type="number"
+                  min="0"
+                  max="5000"
+                  placeholder={`~${autoEstimatedCalories}`}
+                  value={calories}
+                  onChange={(e) => {
+                    setCalories(e.target.value);
+                    setIsCaloriesCustom(true);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
                 />
+                <span className="absolute right-3 top-2.5 text-xs text-sand-400">kcal</span>
               </div>
+              <span className="text-[10px] text-sand-400 block mt-0.5 px-0.5">
+                {isCaloriesCustom ? 'Valor manual (relógio/smartwatch)' : `Estimado (~${autoEstimatedCalories} kcal)`}
+              </span>
             </div>
           </div>
 
