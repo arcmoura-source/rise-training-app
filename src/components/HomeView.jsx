@@ -15,8 +15,10 @@ import {
   TrendingUp,
   Award,
   X,
+  Plus,
 } from 'lucide-react';
 import { YOUTUBE_VIDEOS, CANAIS_FAVORITOS } from '../data/videoData';
+import AddActivityModal from './AddActivityModal';
 
 const STORAGE_LIKED = 'rise_liked_videos';
 function getLiked() {
@@ -33,12 +35,20 @@ export default function HomeView({
   onStartWorkout,
   setTab,
   history = [],
+  onLogActivity,
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const userPref = profile?.ondeTreina || 'both';
   const [workoutMode, setWorkoutMode] = useState(() => (userPref === 'gym' ? 'gym' : 'home'));
   const [likedIds] = useState(() => getLiked());
   const [showTipModal, setShowTipModal] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [modalTargetDate, setModalTargetDate] = useState(() => new Date());
+
+  const handleOpenAddModal = (date) => {
+    setModalTargetDate(date || selectedDate || new Date());
+    setIsAddModalOpen(true);
+  };
 
   React.useEffect(() => {
     if (userPref === 'gym') setWorkoutMode('gym');
@@ -490,12 +500,14 @@ export default function HomeView({
                   {d.dayNum}
                 </span>
 
-                {/* Status Dot / Check */}
+                {/* Status Dot / Check / Add indicator */}
                 <div className="mt-1 flex items-center justify-center h-2">
                   {d.hasWorkout ? (
                     <div className={`w-2 h-2 rounded-full ${isSel ? 'bg-white' : 'bg-emerald-500'}`} />
+                  ) : isSel ? (
+                    <span className="text-[10px] font-extrabold text-white leading-none">+</span>
                   ) : d.isToday ? (
-                    <span className={`w-1.5 h-1.5 rounded-full animate-ping ${isSel ? 'bg-white' : 'bg-roseGold-400'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full animate-ping bg-roseGold-400`} />
                   ) : null}
                 </div>
               </button>
@@ -505,13 +517,25 @@ export default function HomeView({
 
         {/* Workouts Completed on Selected Date */}
         <div className="pt-2 border-t border-sand-100">
+          <div className="flex items-center justify-between px-1 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-sand-400 block">
+              {selectedDayData.isToday
+                ? `Treinos de Hoje (${selectedDayData.fullDayName})`
+                : `Treinos de ${selectedDayData.fullDayName} (${selectedDayData.dayNum})`}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleOpenAddModal(selectedDayData.date)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cream-100 hover:bg-roseGold-50 text-roseGold-600 border border-sand-200 hover:border-roseGold-300 text-[11px] font-bold transition active:scale-95 shadow-2xs"
+              title="Adicionar ou registar treino neste dia"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Adicionar</span>
+            </button>
+          </div>
+
           {selectedDayData.workouts.length > 0 ? (
             <div className="space-y-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-sand-400 block px-1">
-                {selectedDayData.isToday
-                  ? `Treinos de Hoje (${selectedDayData.fullDayName})`
-                  : `Treinos de ${selectedDayData.fullDayName} (${selectedDayData.dayNum})`}
-              </span>
               {selectedDayData.workouts.map((w, idx) => (
                 <div
                   key={idx}
@@ -527,6 +551,7 @@ export default function HomeView({
                       </span>
                       <span className="text-xs text-sand-400">
                         {w.tipo || 'Ginásio'} • {w.duracaoMinutos || 45} min
+                        {w.distanciaKm ? ` • ${w.distanciaKm} km` : ''}
                       </span>
                     </div>
                   </div>
@@ -537,12 +562,20 @@ export default function HomeView({
               ))}
             </div>
           ) : (
-            <div className="px-1 py-1 text-center">
-              <span className="text-xs text-sand-400">
+            <div className="p-3.5 rounded-2xl bg-cream-50/70 border border-dashed border-sand-300/80 text-center space-y-2">
+              <span className="text-xs text-sand-400 block">
                 {selectedDayData.isToday
-                  ? 'Ainda não registaste nenhum treino hoje. Vamos a isso!'
+                  ? 'Ainda não registaste nenhum treino hoje. Esqueceste-te ou fizeste outra atividade?'
                   : `Sem treinos registados em ${selectedDayData.fullDayName.toLowerCase()} (${selectedDayData.dayNum}).`}
               </span>
+              <button
+                type="button"
+                onClick={() => handleOpenAddModal(selectedDayData.date)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-roseGold-400 to-roseGold-500 text-white text-xs font-bold shadow-sm shadow-roseGold-200/50 hover:opacity-95 active:scale-95 transition"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>Registar Treino / Atividade</span>
+              </button>
             </div>
           )}
         </div>
@@ -917,6 +950,15 @@ export default function HomeView({
           </div>
         </div>
       )}
+
+      {/* Modal para Adicionar / Registar Treino ou Atividade Esquecida */}
+      <AddActivityModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        initialDate={modalTargetDate}
+        workouts={workouts}
+        onSaveActivity={onLogActivity}
+      />
     </div>
   );
 }

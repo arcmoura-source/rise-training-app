@@ -139,6 +139,14 @@ export default function App() {
     triggerAutoSyncToGoogleDrive(1200);
   };
 
+  const handleLogManualActivity = (activityEntry) => {
+    const updatedHistory = addWorkoutHistory(activityEntry, profile?.id);
+    setHistoryState(updatedHistory);
+
+    // Auto-Sync em segundo plano para o Google Drive
+    triggerAutoSyncToGoogleDrive(1200);
+  };
+
   const handleAddWorkout = (newWorkout) => {
     const updated = [...workouts, newWorkout];
     setWorkoutsState(updated);
@@ -251,6 +259,7 @@ export default function App() {
                   onStartWorkout={handleStartWorkout}
                   setTab={setCurrentTab}
                   history={history}
+                  onLogActivity={handleLogManualActivity}
                 />
               )}
 
