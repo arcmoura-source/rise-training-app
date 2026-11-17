@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#DF86A3" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Rise</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Identity Services (GIS) for Official Google Sign-In & Google Drive Sync -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      /* Esconder completamente qualquer popup ou badge do Netlify */
+      [id*="netlify"],
+      [class*="netlify"],
+      iframe[src*="netlify"],
+      netlify-drawer,
+      netlify-badge,
+      #netlify-collaborative-tools,
+      .netlify-drawer,
+      .netlify-badge {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+      }
+    </style>
+    <script>
+      (function() {
+        const removeNetlifyElements = () => {
+          const targets = document.querySelectorAll('[id*="netlify"], [class*="netlify"], netlify-drawer, netlify-badge, iframe[src*="netlify"], #netlify-collaborative-tools, .netlify-drawer, .netlify-badge');
+          targets.forEach(el => el.remove());
+        };
+        try {
+          const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+              for (const node of mutation.addedNodes) {
+                if (node.nodeType === 1) {
+                  const tag = (node.tagName || '').toLowerCase();
+                  const id = (node.id || '').toLowerCase();
+                  const cls = (typeof node.className === 'string' ? node.className : '').toLowerCase();
+                  const src = (node.src || '').toLowerCase();
+                  if (tag.includes('netlify') || id.includes('netlify') || cls.includes('netlify') || src.includes('netlify')) {
+                    node.remove();
+                  }
+                }
+              }
+            }
+          });
+          observer.observe(document.documentElement, { childList: true, subtree: true });
+        } catch(e) {}
+        window.addEventListener('DOMContentLoaded', removeNetlifyElements);
+        window.addEventListener('load', removeNetlifyElements);
+      })();
+    </script>
+  </head>
+  <body class="bg-cream-100 text-sand-500 font-sans antialiased selection:bg-roseGold-200 selection:text-sand-600">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

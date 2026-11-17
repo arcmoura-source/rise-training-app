@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production & Build Outputs
+dist/
+dist-rita/
+dist-users/
+dist-ssr/
+build/
+*.local
+
+# Environment variables & API credentials (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+
+# Python caches & virtual environments (if any scripts are added)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+
+# Vercel & Deployment
+.vercel/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# IDEs & Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Capacitor / Android local generated files
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/.idea/
+
+# Local deploy helper scripts
+publicar-*.bat
+abrir-no-android-studio.bat
+iniciar.bat

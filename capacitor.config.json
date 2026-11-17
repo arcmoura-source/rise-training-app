@@ -1,0 +1,6 @@
+{
+  "appId": "com.rise.fitness",
+  "appName": "Rise",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
