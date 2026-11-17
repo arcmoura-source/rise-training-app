@@ -565,8 +565,8 @@ export default function HomeView({
             <div className="p-3.5 rounded-2xl bg-cream-50/70 border border-dashed border-sand-300/80 text-center space-y-2">
               <span className="text-xs text-sand-400 block">
                 {selectedDayData.isToday
-                  ? 'Ainda não registaste nenhum treino hoje. Esqueceste-te ou fizeste outra atividade?'
-                  : `Sem treinos registados em ${selectedDayData.fullDayName.toLowerCase()} (${selectedDayData.dayNum}).`}
+                  ? 'Ainda não registaste nenhum treino hoje.'
+                  : `Sem registo de treino em ${selectedDayData.fullDayName.toLowerCase()} (${selectedDayData.dayNum}).`}
               </span>
               <button
                 type="button"
@@ -951,7 +951,7 @@ export default function HomeView({
         </div>
       )}
 
-      {/* Modal para Adicionar / Registar Treino ou Atividade Esquecida */}
+      {/* Modal para Adicionar / Registar Treino ou Atividade */}
       <AddActivityModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
