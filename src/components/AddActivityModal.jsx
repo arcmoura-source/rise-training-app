@@ -15,6 +15,7 @@ import {
   Info,
   MapPin,
   Gauge,
+  Home as HomeIcon,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -62,14 +63,14 @@ const ACTIVITY_PRESETS = [
   },
   {
     id: 'link',
-    label: 'Link de Vídeo',
-    icon: LinkIcon,
-    defaultTitle: 'Treino Online / YouTube',
+    label: 'Treino em Casa',
+    icon: HomeIcon,
+    defaultTitle: 'Treino em Casa (Vídeo / Tapete)',
     defaultDuration: 30,
     defaultDistance: '',
     requiresDistance: false,
     met: 7.0,
-    tipo: 'Vídeo Online',
+    tipo: 'Treino em Casa',
     foco: 'Treino Guiado',
   },
   {
@@ -389,11 +390,11 @@ export default function AddActivityModal({
             </div>
           </div>
 
-          {/* Caso 1: Link de Vídeo (YouTube) */}
+          {/* Caso 1: Treino em Casa (Link de Vídeo / YouTube) */}
           {selectedPresetId === 'link' && (
             <div className="space-y-2 p-3 rounded-2xl bg-roseGold-50/50 border border-roseGold-200">
               <label className="text-[11px] font-bold uppercase tracking-wider text-roseGold-700 block">
-                Link do Vídeo (YouTube ou Web)
+                Link do Vídeo (YouTube ou Web - opcional)
               </label>
               <div className="relative">
                 <input
