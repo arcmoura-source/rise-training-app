@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { YOUTUBE_VIDEOS, CANAIS_FAVORITOS } from '../data/videoData';
 import AddActivityModal from './AddActivityModal';
+import { analyzeRecentFeedback, getFeedbackAdaptedStrategy } from '../services/feedbackAdvisor';
 
 const STORAGE_LIKED = 'rise_liked_videos';
 function getLiked() {
@@ -269,24 +270,46 @@ export default function HomeView({
     };
   }, [bodyBalance]);
 
+  // ── Análise Inteligente do Feedback Recente ──────────────────────────────
+  const feedbackAnalysis = useMemo(() => {
+    return analyzeRecentFeedback(history);
+  }, [history]);
+
+  // ── Estratégia Adaptada (Equilíbrio Semanal + Impacto do Feedback) ──────
+  const activeStrategy = useMemo(() => {
+    return getFeedbackAdaptedStrategy(recommendationStrategy, feedbackAnalysis);
+  }, [recommendationStrategy, feedbackAnalysis]);
+
   // ── Recommended Gym Workout ───────────────────────────────────────────────
   const recommendedGymWorkout = useMemo(() => {
-    const match = workouts.find((w) => w.id === recommendationStrategy.gymId);
+    const match = workouts.find((w) => w.id === activeStrategy.gymId);
     return match || workouts[0];
-  }, [workouts, recommendationStrategy]);
+  }, [workouts, activeStrategy]);
 
-  // ── Recommended Home Video (Smart matching level, favorites & targetArea) ──
+  // ── Recommended Home Video (Smart matching level, favorites, targetArea & feedback) ──
   const recommendedHomeVideo = useMemo(() => {
-    const target = recommendationStrategy.focusArea;
+    const target = activeStrategy.focusArea;
     const favChannelNames = CANAIS_FAVORITOS.map((c) => c.nome.toLowerCase());
     const nivelLower = (profile?.nivel || 'Intermédio').toLowerCase();
     const isBeginner = nivelLower.includes('inici');
     const isAdvanced = nivelLower.includes('avan');
     const isIntermediate = !isBeginner && !isAdvanced;
 
-    // Filter matching targetArea first
-    const areaPool = YOUTUBE_VIDEOS.filter((v) => v.targetArea === target);
-    const pool = areaPool.length > 0 ? areaPool : YOUTUBE_VIDEOS;
+    // Excluir vídeos com avaliação baixa (<= 2 estrelas) no histórico do utilizador
+    const lowRatedIds = (history || [])
+      .filter((h) => (h.tipo === 'video' || h.treinoId) && Number(h.rating) <= 2)
+      .map((h) => h.treinoId);
+
+    // Se o utilizador reportou dor ou fadiga muscular, priorizar mobilidade / pilates ou zona de recuperação
+    const areaPool = YOUTUBE_VIDEOS.filter((v) => {
+      if (lowRatedIds.includes(v.id)) return false;
+      if (feedbackAnalysis?.hasPainOrDiscomfort) {
+        return v.categoria === 'Mobilidade' || v.categoria === 'Pilates' || v.targetArea === target;
+      }
+      return v.targetArea === target;
+    });
+
+    const pool = areaPool.length > 0 ? areaPool : YOUTUBE_VIDEOS.filter((v) => !lowRatedIds.includes(v.id));
 
     // 1. First choice: Liked video matching targetArea and appropriate level
     const likedMatch = pool.find((v) => {
@@ -302,7 +325,7 @@ export default function HomeView({
       const beginnerMatch = pool.find((v) => (v.intensidade || 0) <= 3);
       if (beginnerMatch) return beginnerMatch;
     } else if (isIntermediate) {
-      // Para Intermédio (Rita e Mãe): Intensidade 3 a 4 (NUNCA nível 5 / Hyrox!)
+      // Para Intermédio: Intensidade 3 a 4 (NUNCA nível 5 / Hyrox!)
       const intermediateMatch = pool.find(
         (v) => (v.intensidade || 0) >= 3 && (v.intensidade || 0) <= 4
       );
@@ -323,24 +346,35 @@ export default function HomeView({
 
     // 4. Safe fallback guaranteeing level compatibility
     if (isBeginner) {
-      return YOUTUBE_VIDEOS.find((v) => (v.intensidade || 0) <= 3) || YOUTUBE_VIDEOS[1];
+      return pool.find((v) => (v.intensidade || 0) <= 3) || YOUTUBE_VIDEOS[1];
     }
     if (isIntermediate) {
-      // Treino de nível 4 (ex: 30 MIN KILLER LOWER BODY ou KILLER STRENGTH)
       return (
-        YOUTUBE_VIDEOS.find((v) => (v.intensidade || 0) === 4 && v.categoria !== 'Alta Intensidade') ||
-        YOUTUBE_VIDEOS.find((v) => (v.intensidade || 0) === 4) ||
+        pool.find((v) => (v.intensidade || 0) === 4 && v.categoria !== 'Alta Intensidade') ||
+        pool.find((v) => (v.intensidade || 0) === 4) ||
         YOUTUBE_VIDEOS[1]
       );
     }
-    return YOUTUBE_VIDEOS[0];
-  }, [recommendationStrategy, likedIds, profile?.nivel]);
+    return pool[0] || YOUTUBE_VIDEOS[0];
+  }, [activeStrategy, likedIds, profile?.nivel, history, feedbackAnalysis]);
 
-  // ── Dica Dinâmica do AI Coach (Adaptada ao Vídeo Sugerido, Pesos e Foco) ───
+  // ── Dica Dinâmica do AI Coach (Adaptada ao Vídeo Sugerido, Pesos e Feedback) ───
   const currentAiTip = useMemo(() => {
+    // Prefixo dinâmico se houver feedback recente
+    let feedbackPrefix = '';
+    if (feedbackAnalysis && (feedbackAnalysis.rawFeedback || feedbackAnalysis.tags.length > 0)) {
+      if (feedbackAnalysis.hasPainOrDiscomfort) {
+        feedbackPrefix = `💡 Adaptado ao teu registo em ${feedbackAnalysis.treinoTitulo}: Hoje preservamos as tuas articulações com movimento seguro e regenerativo. `;
+      } else if (feedbackAnalysis.isFatigueOrHeavy) {
+        feedbackPrefix = `💡 Tendo em conta o esforço elevado em ${feedbackAnalysis.treinoTitulo}: Garante descanso entre séries e boa hidratação. `;
+      } else if (feedbackAnalysis.isHighEnergy) {
+        feedbackPrefix = `💡 Embalada pelo ótimo treino em ${feedbackAnalysis.treinoTitulo}: Mantém a consistência no ponto! `;
+      }
+    }
+
     if (workoutMode === 'home') {
       if (!recommendedHomeVideo) {
-        return 'Para hipertrofia e definição em casa, foca-te em controlar a fase excêntrica (3 segundos a descer). O tempo sob tensão ativa as fibras musculares com o dobro da eficácia!';
+        return feedbackPrefix + 'Para hipertrofia e definição em casa, foca-te em controlar a fase excêntrica (3 segundos a descer). O tempo sob tensão ativa as fibras musculares com o dobro da eficácia!';
       }
 
       const titleLower = (recommendedHomeVideo.titulo || '').toLowerCase();
@@ -381,48 +415,48 @@ export default function HomeView({
       // 1. Treino com pesos / halteres em casa
       if (hasWeights) {
         if (isGlutes) {
-          return 'Para hipertrofia e definição dos glúteos com pesos, foca-te em controlar a fase excêntrica (3 segundos a descer). O tempo sob tensão ativa as fibras musculares profundas com o dobro da eficácia!';
+          return feedbackPrefix + 'Para hipertrofia e definição dos glúteos com pesos, foca-te em controlar a fase excêntrica (3 segundos a descer). O tempo sob tensão ativa as fibras musculares profundas com o dobro da eficácia!';
         }
-        return 'Para hipertrofia e definição em casa com halteres, foca-te em controlar a fase excêntrica (3 segundos a descer o haltere). O tempo sob tensão ativa as fibras musculares profundas com o dobro da eficácia!';
+        return feedbackPrefix + 'Para hipertrofia e definição em casa com halteres, foca-te em controlar a fase excêntrica (3 segundos a descer o haltere). O tempo sob tensão ativa as fibras musculares profundas com o dobro da eficácia!';
       }
 
       // 2. Alta Intensidade / Cardio / Hyrox (sem pesos ou peso corporal)
       if (isHighIntensity) {
-        return 'Sessão de alta intensidade e ritmo cardíaco elevado! O segredo é gerir a energia: mantém uma respiração constante pelo nariz nos blocos intensos e bebe pequenos goles de água nos intervalos.';
+        return feedbackPrefix + 'Sessão de alta intensidade e ritmo cardíaco elevado! O segredo é gerir a energia: mantém uma respiração constante pelo nariz nos blocos intensos e bebe pequenos goles de água nos intervalos.';
       }
 
       // 3. Glúteos sem pesos (peso corporal / bandas)
       if (isGlutes) {
-        return 'Treino de glúteos focado em ativação profunda e tempo sob tensão! Pensa na ligação mente-músculo: aperta bem o glúteo no pico do movimento sem balançar o tronco.';
+        return feedbackPrefix + 'Treino de glúteos focado em ativação profunda e tempo sob tensão! Pensa na ligação mente-músculo: aperta bem o glúteo no pico do movimento sem balançar o tronco.';
       }
 
       // 4. Pilates / Core
       if (isPilates) {
-        return 'Nesta sessão de Pilates, o foco é a estabilidade profunda do core e o controlo respiratório. Expira ao fazer o maior esforço e mantém os ombros relaxados para evitar tensão no pescoço.';
+        return feedbackPrefix + 'Nesta sessão de Pilates, o foco é a estabilidade profunda do core e o controlo respiratório. Expira ao fazer o maior esforço e mantém os ombros relaxados para evitar tensão no pescoço.';
       }
 
       // 5. Mobilidade e Recuperação
       if (isMobility) {
-        return 'Momento de regeneração ativa! Respira profundamente e nunca forces até à dor. Libertar as tensões nas ancas e pernas vai aumentar a tua força e amplitude nos próximos treinos.';
+        return feedbackPrefix + 'Momento de regeneração ativa! Respira profundamente e nunca forces até à dor. Libertar as tensões nas ancas e pernas vai aumentar a tua força e amplitude nos próximos treinos.';
       }
 
-      return 'Controla o ritmo de cada movimento e mantém o core ligeiramente ativo. A técnica e a consistência trazem resultados visíveis com total segurança!';
+      return feedbackPrefix + 'Controla o ritmo de cada movimento e mantém o core ligeiramente ativo. A técnica e a consistência trazem resultados visíveis com total segurança!';
     }
 
     // ── Dicas para Treinos de Ginásio (Gym Mode) ──
     const gymId = recommendedGymWorkout?.id;
     if (gymId === 'treino-1') {
-      return 'Foco em Quadríceps e Adutores! No Leg Press e no Seated Hip Adductor, empurra e aperta com controlo total da descida. Lembra-te de apontar as cargas de hoje para acompanhar a tua evolução!';
+      return feedbackPrefix + 'Foco em Quadríceps e Adutores! No Leg Press e no Seated Hip Adductor, empurra e aperta com controlo total da descida. Lembra-te de apontar as cargas de hoje para acompanhar a tua evolução!';
     }
     if (gymId === 'treino-2') {
-      return 'Dia de Glúteos & Posterior! No Hip Thrust, Romanian Deadlift (RDL) e Back Extension, foca-te na extensão completa da anca sem arquear a lombar. Ajustar as cargas série a série garante o estímulo ideal.';
+      return feedbackPrefix + 'Dia de Glúteos & Posterior! No Hip Thrust, Romanian Deadlift (RDL) e Back Extension, foca-te na extensão completa da anca sem arquear a lombar. Ajustar as cargas série a série garante o estímulo ideal.';
     }
     if (gymId === 'treino-3') {
-      return 'Foco em Superiores e Postura! Nas remadas e puxadas, pensa em "puxar com os cotovelos" para sentires as costas e os dorsais. Mantém o peito aberto e os ombros afastados das orelhas!';
+      return feedbackPrefix + 'Foco em Superiores e Postura! Nas remadas e puxadas, pensa em "puxar com os cotovelos" para sentires as costas e os dorsais. Mantém o peito aberto e os ombros afastados das orelhas!';
     }
 
-    return 'No ginásio, a consistência de cargas e o registo de cada série fazem toda a magia. Mantém a técnica impecável e desafia-te!';
-  }, [workoutMode, recommendedHomeVideo, recommendedGymWorkout]);
+    return feedbackPrefix + 'No ginásio, a consistência de cargas e o registo de cada série fazem toda a magia. Mantém a técnica impecável e desafia-te!';
+  }, [workoutMode, recommendedHomeVideo, recommendedGymWorkout, feedbackAnalysis]);
 
   return (
     <div className="space-y-5 pb-24">
@@ -739,13 +773,20 @@ export default function HomeView({
       {workoutMode === 'home' ? (
         <div className="space-y-4 animate-fade-in">
           {/* Recommendation Banner explaining WHY */}
-          <div className="bg-gradient-to-r from-roseGold-50 to-cream-100 rounded-3xl p-4 border border-roseGold-200/80 shadow-soft space-y-1.5">
-            <div className="flex items-center gap-1.5 text-roseGold-600 font-bold text-xs">
-              <Sparkles className="w-4 h-4" />
-              <span>Recomendação do Coach AI</span>
+          <div className="bg-gradient-to-r from-roseGold-50 to-cream-100 rounded-3xl p-4 border border-roseGold-200/80 shadow-soft space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-roseGold-600 font-bold text-xs">
+                <Sparkles className="w-4 h-4" />
+                <span>Recomendação do Coach AI</span>
+              </div>
+              {activeStrategy.feedbackNotice && (
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-roseGold-100 text-roseGold-700 border border-roseGold-200 shadow-2xs">
+                  ✨ Adaptado ao Feedback
+                </span>
+              )}
             </div>
             <p className="text-xs text-sand-500 leading-relaxed">
-              {recommendationStrategy.motivo}
+              {activeStrategy.motivo}
             </p>
           </div>
 
@@ -812,13 +853,20 @@ export default function HomeView({
         /* GYM WORKOUT MODE */
         <div className="space-y-4 animate-fade-in">
           {/* Recommendation Banner explaining WHY */}
-          <div className="bg-gradient-to-r from-roseGold-50 to-cream-100 rounded-3xl p-4 border border-roseGold-200/80 shadow-soft space-y-1.5">
-            <div className="flex items-center gap-1.5 text-roseGold-600 font-bold text-xs">
-              <Sparkles className="w-4 h-4" />
-              <span>Recomendação do Coach AI</span>
+          <div className="bg-gradient-to-r from-roseGold-50 to-cream-100 rounded-3xl p-4 border border-roseGold-200/80 shadow-soft space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-roseGold-600 font-bold text-xs">
+                <Sparkles className="w-4 h-4" />
+                <span>Recomendação do Coach AI</span>
+              </div>
+              {activeStrategy.feedbackNotice && (
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-roseGold-100 text-roseGold-700 border border-roseGold-200 shadow-2xs">
+                  ✨ Adaptado ao Feedback
+                </span>
+              )}
             </div>
             <p className="text-xs text-sand-500 leading-relaxed">
-              {recommendationStrategy.motivo}
+              {activeStrategy.motivo}
             </p>
           </div>
 

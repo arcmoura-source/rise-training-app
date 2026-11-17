@@ -88,17 +88,20 @@ export default function WorkoutDetailView({
       colors: ['#CE8FA5', '#E6B8B8', '#FAF7F2', '#4A403A']
     });
 
+    const duracaoMinutos = Math.max(1, Math.round(elapsedSeconds / 60));
     const summary = {
       id: 'hist-' + Date.now(),
       data: new Date().toISOString(),
       treinoId: activeWorkout.id,
       treinoTitulo: activeWorkout.titulo,
-      duracaoMinutos: Math.max(1, Math.round(elapsedSeconds / 60)),
+      duracaoMinutos,
+      caloriasEstimadas: Math.round(duracaoMinutos * 6.5),
       seriesConcluidas: completedSets,
       exercicios: activeWorkout.exercicios,
       tipo: 'Ginásio',
       rating: feedbackData?.rating || 5,
       feedback: feedbackData?.comment || '',
+      tags: feedbackData?.tags || [],
     };
 
     setShowFeedbackModal(false);

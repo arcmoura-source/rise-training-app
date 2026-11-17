@@ -252,11 +252,12 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
     setFeedbackVideo(video);
   };
 
-  const handleSubmitFeedback = ({ rating, note, comment, isFavorite, tags, data }) => {
+  const handleSubmitFeedback = ({ rating, note, comment, feedback, isFavorite, tags, data }) => {
     if (!feedbackVideo) return;
 
     const duracaoMinutos = parseInt(feedbackVideo.duracao) || 30;
     const caloriasEstimadas = Math.round(duracaoMinutos * 7.5);
+    const feedbackText = (feedback || comment || note || '').trim();
 
     const logEntry = {
       id: 'log-video-' + Date.now(),
@@ -269,9 +270,11 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
       tipo: 'video',
       foco: feedbackVideo.foco,
       categoria: feedbackVideo.categoria,
-      avaliacao: rating,
-      comentario: comment || note || '',
-      tags: tags || [],
+      rating: Number(rating) || 5,
+      avaliacao: Number(rating) || 5,
+      feedback: feedbackText,
+      comentario: feedbackText,
+      tags: Array.isArray(tags) ? tags : [],
       exerciciosFeitos: [feedbackVideo.titulo],
     };
 

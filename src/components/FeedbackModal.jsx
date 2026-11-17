@@ -23,8 +23,10 @@ export default function FeedbackModal({
     '💪 Cargas Perfeitas',
     '🍑 Senti os Glúteos',
     '⚡ Ritmo Acelerado',
-    '✨ Adorei a Aula',
+    '✨ Adorei o Treino',
     '🧘‍♀️ Boa Postura',
+    '😴 Cansaço / Pesado',
+    '🩹 Desconforto / Dor',
   ];
 
   const toggleTag = (tag) => {

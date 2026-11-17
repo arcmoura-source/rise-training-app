@@ -282,7 +282,7 @@ export default function App() {
               )}
 
               {currentTab === 'coach' && (
-                <AiCoachView profile={profile} workouts={workouts} />
+                <AiCoachView profile={profile} workouts={workouts} history={history} />
               )}
 
               {currentTab === 'profile' && (

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { generateAiAdvice } from '../services/aiCoach';
 import { getChatMessages, saveChatMessages } from '../services/storage';
+import { analyzeRecentFeedback } from '../services/feedbackAdvisor';
 
 const DEFAULT_WELCOME = `Olá Rita! ✨ Sou o teu AI Personal Coach.
 
@@ -106,7 +107,7 @@ function FormattedMessage({ text }) {
   );
 }
 
-export default function AiCoachView({ profile, workouts }) {
+export default function AiCoachView({ profile, workouts, history = [] }) {
   const [messages, setMessages] = useState(() => {
     const list = getChatMessages();
     if (Array.isArray(list) && list.length > 0) {
@@ -129,6 +130,10 @@ export default function AiCoachView({ profile, workouts }) {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [keySaved, setKeySaved] = useState(false);
+
+  const recentFeedback = React.useMemo(() => {
+    return analyzeRecentFeedback(history);
+  }, [history]);
 
   const messagesEndRef = useRef(null);
 
@@ -157,7 +162,7 @@ export default function AiCoachView({ profile, workouts }) {
     setIsTyping(true);
 
     try {
-      const replyText = await generateAiAdvice(text, profile, workouts, messages);
+      const replyText = await generateAiAdvice(text, profile, workouts, messages, history);
       const aiMsg = {
         id: 'msg-' + (Date.now() + 1),
         sender: 'ai',
@@ -239,6 +244,24 @@ export default function AiCoachView({ profile, workouts }) {
           </button>
         </div>
       </div>
+
+      {/* Active Feedback Memory Banner */}
+      {recentFeedback && (
+        <div className="mt-2.5 px-3 py-1.5 rounded-2xl bg-cream-50/90 border border-sand-200 text-[11px] text-sand-500 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="text-roseGold-500">✨</span>
+            <span className="truncate">
+              <strong>Contexto ativo:</strong> {recentFeedback.treinoTitulo}
+              {recentFeedback.rawFeedback ? ` • "${recentFeedback.rawFeedback}"` : recentFeedback.tags.length > 0 ? ` • ${recentFeedback.tags.join(', ')}` : ''}
+            </span>
+          </div>
+          {recentFeedback.rating && (
+            <span className="text-amber-500 font-bold shrink-0 ml-1.5">
+              {'★'.repeat(recentFeedback.rating)}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Messages List */}
       <div className="flex-1 overflow-y-auto py-4 space-y-3.5 pr-1">

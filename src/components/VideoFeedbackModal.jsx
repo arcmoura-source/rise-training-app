@@ -6,9 +6,25 @@ export default function VideoFeedbackModal({ video, isOpen, onClose, onSubmitFee
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState('');
+  const [selectedTags, setSelectedTags] = useState([]);
   const [isFavorite, setIsFavorite] = useState(true);
 
   if (!isOpen || !video) return null;
+
+  const quickTags = [
+    '🔥 Muito Puxado',
+    '🍑 Senti os Glúteos',
+    '⚡ Ritmo Acelerado',
+    '✨ Adorei a Aula',
+    '😴 Cansaço / Pesado',
+    '🩹 Desconforto / Dor',
+  ];
+
+  const toggleTag = (tag) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   const ratingLabels = {
     1: 'Muito leve / Não gostei',
@@ -30,6 +46,7 @@ export default function VideoFeedbackModal({ video, isOpen, onClose, onSubmitFee
       video,
       rating,
       feedback: feedbackText.trim(),
+      tags: selectedTags,
       isFavorite,
     });
   };
@@ -104,6 +121,33 @@ export default function VideoFeedbackModal({ video, isOpen, onClose, onSubmitFee
           <span className="text-xs font-extrabold text-roseGold-600 block min-h-[1.25rem]">
             {ratingLabels[currentDisplayRating]}
           </span>
+        </div>
+
+        {/* Quick Sensations / Tags */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-sand-400 uppercase tracking-wider flex items-center gap-1">
+            <Flame className="w-3 h-3 text-roseGold-500" />
+            Como sentiste o corpo? (Toque rápido)
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {quickTags.map((tag) => {
+              const active = selectedTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={`px-2.5 py-1 rounded-xl text-[11px] font-medium border transition-all ${
+                    active
+                      ? 'bg-roseGold-400 text-white border-roseGold-400 shadow-sm'
+                      : 'bg-cream-50 text-sand-500 border-sand-200 hover:bg-cream-100'
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Feedback Textbox */}

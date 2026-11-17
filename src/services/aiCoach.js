@@ -4,7 +4,15 @@
 // e motor de raciocínio de fitness local contextual em Português de Portugal.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const generateAiAdvice = async (userPrompt, profile, workouts, conversationHistory = []) => {
+import { formatHistoryForAi, analyzeRecentFeedback } from './feedbackAdvisor';
+
+export const generateAiAdvice = async (
+  userPrompt,
+  profile,
+  workouts,
+  conversationHistory = [],
+  history = []
+) => {
   const prompt = (userPrompt || '').trim();
   const promptLower = prompt.toLowerCase();
 
@@ -12,6 +20,9 @@ export const generateAiAdvice = async (userPrompt, profile, workouts, conversati
   const objetivo = profile?.objetivo || 'Hipertrofia & Força (Quadríceps e Glúteos)';
   const ondeTreina = profile?.ondeTreina || 'both';
   const nivel = profile?.nivel || 'Intermédio';
+
+  const historicoRecenteDesc = formatHistoryForAi(history, 5);
+  const feedbackAnalysis = analyzeRecentFeedback(history);
 
   // ── 1. CHAMADA À GOOGLE GEMINI API (Cascata de Modelos com Memória Multi-Turn) ─
   const apiKey =
@@ -80,17 +91,24 @@ Perfil da aluna:
 Treinos habituais dela no plano:
 ${treinosDesc}
 
+Histórico recente de treinos & Feedback real registado pela ${nome}:
+${historicoRecenteDesc}
+
 Regras obrigatórias de resposta:
 1. Responde SEMPRE em Português de Portugal natural (PT-PT: usa "estás", "treinares", "pequeno-almoço", "ecrã", "banco", "peitoral", etc.).
-2. MEMÓRIA ATIVA DA CONVERSA: Lê e leva SEMPRE em conta o histórico de mensagens anteriores. Se a ${nome} fizer perguntas de seguimento (ex: "e para o outro?", "quantas séries devo fazer disso?", "como substituo?", "diz-me mais"), responde sabendo exatamente ao que ela se refere no contexto do que já conversaram.
-3. NUNCA menciones o peso em kg da aluna. NUNCA uses a expressão "especialista em hipertrofia" nem te descrevas assim.
-4. ESTILO DE LINGUAGEM:
-   - Podes dizer "tendo em conta o teu perfil e objetivo" de forma natural e pontual, mas NUNCA coloques o objetivo entre aspas ou parênteses (nunca escrevas "Hipertrofia..." nem (*Hipertrofia...*)).
-   - NÃO repitas frases feitas nem digas "com base no teu objetivo" ou "tendo em conta o teu perfil e objetivo" em todas as respostas. Varia a linguagem de forma descontraída, calorosa e humana como um treinador real.
+2. IMPACTO DO FEEDBACK: Lê e leva SEMPRE em conta o histórico recente de treinos e o feedback que ela registou (estrelas, notas de esforço, dores ou entusiasmo).
+   - Se a ${nome} reportou desconforto articular ou dor (ex: joelhos, lombar, ombros), NUNCA insistas no mesmo movimento agressivo; sugere recuperação, mobilidade, ou ajusta o foco para outra zona muscular.
+   - Se a última sessão foi avaliada como muito pesada ou desgastante, recomenda equilíbrio, boa hidratação e sono adequado.
+   - Se o último treino teve 5 estrelas ou ótimo feedback ("adorei", "cargas perfeitas"), parabeniza-a e propõe manter a consistência e sobrecarga progressiva.
+3. MEMÓRIA ATIVA DA CONVERSA: Lê e leva SEMPRE em conta o histórico de mensagens anteriores. Se a ${nome} fizer perguntas de seguimento, responde sabendo exatamente ao que ela se refere no contexto do que já conversaram.
+4. NUNCA menciones o peso em kg da aluna. NUNCA uses a expressão "especialista em hipertrofia" nem te descrevas assim.
+5. ESTILO DE LINGUAGEM:
+   - Podes dizer "tendo em conta o teu perfil e objetivo" de forma natural e pontual, mas NUNCA coloques o objetivo entre aspas ou parênteses.
+   - NÃO repitas frases feitas. Varia a linguagem de forma descontraída, calorosa e humana como um treinador real.
    - Vai DIRETO ao ponto da resposta sem introduções mecânicas.
-5. Se a aluna fizer mais do que uma pergunta na mesma mensagem, responde a TODAS separando por tópicos claros e organizados.
-6. ESCOPO ESTRITAMENTE LIMITADO A FITNESS & NUTRIÇÃO: O teu papel é exclusivamente ser Personal Trainer e Coach de Fitness/Nutrição. Responde APENAS a questões de treino, exercícios, execução biomecânica, postura, dores musculares, recuperação, sono, hidratação, suplementação e alimentação saudável.
-7. Usa formatação limpa com tópicos (bullet points) e emojis elegantes para facilitar a leitura no ecrã de telemóvel.`;
+6. Se a aluna fizer mais do que uma pergunta na mesma mensagem, responde a TODAS separando por tópicos claros e organizados.
+7. ESCOPO ESTRITAMENTE LIMITADO A FITNESS & NUTRIÇÃO: O teu papel é exclusivamente ser Personal Trainer e Coach de Fitness/Nutrição.
+8. Usa formatação limpa com tópicos (bullet points) e emojis elegantes para facilitar a leitura no ecrã de telemóvel.`;
 
       // Cascata inteligente de modelos: se o primeiro atingir limite de cota (429/503), tenta os outros automaticamente
       const candidateModels = [
@@ -321,6 +339,42 @@ Regras obrigatórias de resposta:
         p.includes('progredir') || p.includes('sobrecarga') || (p.includes('aumentar') && p.includes('carga')),
       content: `• **Repetições Primeiro:** Só aumentas a carga quando completares o teto de repetições em todas as séries com execução perfeita.
 • **Micro-Aumentos:** Sobe 1kg a 2kg de cada vez, ou faz mais 1 repetição com a mesma carga anterior. Isso já é progresso real!`
+    },
+    {
+      id: 'o_que_treinar_recomendacao',
+      title: 'Recomendação de Treino com Base no Teu Feedback',
+      match: (p) =>
+        p.includes('o que treinar') ||
+        p.includes('que treino') ||
+        p.includes('o que devo fazer') ||
+        p.includes('o que faço hoje') ||
+        p.includes('recomenda') ||
+        p.includes('sugestão de treino'),
+      content: (() => {
+        if (!feedbackAnalysis) {
+          return `Com base no teu objetivo de **${objetivo}**, a recomendação de hoje foca-se em manter o equilíbrio corporal da semana! Podes verificar a sugestão personalizada no separador **Início** adaptada aos teus treinos concluídos.`;
+        }
+
+        if (feedbackAnalysis.hasPainOrDiscomfort) {
+          return `Tendo em conta o teu último feedback no **${feedbackAnalysis.treinoTitulo}** onde registaste desconforto (${feedbackAnalysis.rawFeedback || feedbackAnalysis.tags.join(', ') || 'dor muscular'}), a minha recomendação direta é:
+• **Preservar a zona dorida:** Não faças movimentos agressivos ou cargas altas nessa articulação hoje.
+• **Alternativa ideal:** Foca em **Superiores e Tronco** ou faz uma sessão regenerativa de **Mobilidade & Pilates** para recuperar os tecidos.`;
+        }
+
+        if (feedbackAnalysis.isFatigueOrHeavy) {
+          return `Como no teu último treino (**${feedbackAnalysis.treinoTitulo}**) registaste que foi muito puxado e cansativo (${feedbackAnalysis.rawFeedback || 'esforço elevado'}), hoje recomendo:
+• Se treinaste pernas/glúteos ontem, dá-lhes descanso e aposta em **Superiores (Costas, Ombros & Braços)**.
+• Mantém um bom aquecimento e garante pausas completas entre séries de 90 a 120 segundos.`;
+        }
+
+        if (feedbackAnalysis.isHighEnergy) {
+          return `Vens de uma sessão de topo em **${feedbackAnalysis.treinoTitulo}** (${'★'.repeat(feedbackAnalysis.rating)})! 
+• O teu corpo está com excelente resposta e boa energia.
+• A recomendação para hoje é manter o embalo no grupo muscular seguinte do teu plano (confere a sugestão no ecrã **Início**)!`;
+        }
+
+        return `Tendo em conta o teu registo anterior em **${feedbackAnalysis.treinoTitulo}**, a recomendação atual equilibra o teu volume semanal para garantir recuperação e hipertrofia progressiva. Consulta a recomendação de hoje no ecrã **Início**!`;
+      })()
     }
   ];
 
