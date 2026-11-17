@@ -13,11 +13,16 @@ import {
   CheckCircle2,
   ExternalLink,
   Info,
+  MapPin,
+  Gauge,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-// Tabela de MET (Metabolic Equivalent of Task) para cálculo de gasto calórico:
-// Fórmula: Calorias = MET * Peso (kg) * (Duração em minutos / 60)
+// Configuração dos tipos de atividade
+// Para Caminhada e Corrida, o cálculo calórico baseia-se diretamente na Distância (km) e Peso (kg):
+// - Corrida: ~1.036 kcal / kg / km (Margaria / ACSM)
+// - Caminhada: ~0.75 kcal / kg / km
+// - Outras: Fórmula MET (Metabolic Equivalent of Task)
 const ACTIVITY_PRESETS = [
   {
     id: 'caminhada',
@@ -25,7 +30,9 @@ const ACTIVITY_PRESETS = [
     icon: Footprints,
     defaultTitle: 'Caminhada ao Ar Livre',
     defaultDuration: 45,
-    met: 3.8, // Caminhada moderada / rápida (~4.8 km/h)
+    defaultDistance: '3.5',
+    requiresDistance: true,
+    met: 3.8,
     tipo: 'Caminhada',
     foco: 'Cardio & Mobilidade',
   },
@@ -35,7 +42,9 @@ const ACTIVITY_PRESETS = [
     icon: Flame,
     defaultTitle: 'Corrida Contínua',
     defaultDuration: 30,
-    met: 9.0, // Corrida a ritmo constante (~9-10 km/h)
+    defaultDistance: '4.5',
+    requiresDistance: true,
+    met: 9.0,
     tipo: 'Corrida',
     foco: 'Cardio & Resistência',
   },
@@ -45,7 +54,9 @@ const ACTIVITY_PRESETS = [
     icon: Bike,
     defaultTitle: 'Aula de Spinning / Bike',
     defaultDuration: 45,
-    met: 8.5, // Ciclismo indoor / spinning com intervalos
+    defaultDistance: '15.0',
+    requiresDistance: false,
+    met: 8.5,
     tipo: 'Spinning',
     foco: 'Ciclismo & Alta Intensidade',
   },
@@ -55,7 +66,9 @@ const ACTIVITY_PRESETS = [
     icon: LinkIcon,
     defaultTitle: 'Treino Online / YouTube',
     defaultDuration: 30,
-    met: 7.0, // Treinos guiados tipo Pilates intenso, HIIT ou força com halteres
+    defaultDistance: '',
+    requiresDistance: false,
+    met: 7.0,
     tipo: 'Vídeo Online',
     foco: 'Treino Guiado',
   },
@@ -65,7 +78,9 @@ const ACTIVITY_PRESETS = [
     icon: Dumbbell,
     defaultTitle: 'Treino de Ginásio',
     defaultDuration: 50,
-    met: 5.5, // Musculação com cargas moderadas a pesadas e descansos
+    defaultDistance: '',
+    requiresDistance: false,
+    met: 5.5,
     tipo: 'Ginásio',
     foco: 'Musculação & Hipertrofia',
   },
@@ -75,7 +90,9 @@ const ACTIVITY_PRESETS = [
     icon: Sparkles,
     defaultTitle: 'Atividade Física',
     defaultDuration: 40,
-    met: 5.0, // Natação moderada, padel, dança, etc.
+    defaultDistance: '',
+    requiresDistance: false,
+    met: 5.0,
     tipo: 'Outro',
     foco: 'Condicionamento',
   },
@@ -104,13 +121,13 @@ export default function AddActivityModal({
   });
   const [title, setTitle] = useState('Caminhada ao Ar Livre');
   const [duration, setDuration] = useState(45);
+  const [distanceKm, setDistanceKm] = useState('3.5');
   const [calories, setCalories] = useState('');
   const [isCaloriesCustom, setIsCaloriesCustom] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [youtubeInfo, setYoutubeInfo] = useState(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const [selectedGymWorkoutId, setSelectedGymWorkoutId] = useState('');
-  const [distanceKm, setDistanceKm] = useState('');
   const [notes, setNotes] = useState('');
   const [intensity, setIntensity] = useState('Moderada');
 
@@ -120,12 +137,49 @@ export default function AddActivityModal({
   // Peso corporal do utilizador (default 58 kg)
   const userWeight = profile?.peso ? Number(profile.peso) : 58;
 
-  // Cálculo da estimativa científica (MET * peso * horas)
+  // Cálculo rigoroso de calorias baseado na Distância e Peso (ou tempo/MET para ginásio)
   const autoEstimatedCalories = useMemo(() => {
-    const hours = (Number(duration) || 0) / 60;
-    const est = Math.round(currentPreset.met * userWeight * hours);
+    const dist = parseFloat(distanceKm);
+    const durHours = (Number(duration) || 0) / 60;
+
+    // 1. Caminhada com distância: Gasto calórico = Peso (kg) * Distância (km) * 0.75
+    if (selectedPresetId === 'caminhada' && !isNaN(dist) && dist > 0) {
+      return Math.round(userWeight * dist * 0.75);
+    }
+
+    // 2. Corrida com distância: Gasto calórico = Peso (kg) * Distância (km) * 1.036
+    if (selectedPresetId === 'corrida' && !isNaN(dist) && dist > 0) {
+      return Math.round(userWeight * dist * 1.036);
+    }
+
+    // 3. Spinning com distância: ~22 kcal por km + taxa horária de esforço
+    if (selectedPresetId === 'spinning' && !isNaN(dist) && dist > 0) {
+      return Math.round(dist * 20 + userWeight * durHours * 2.2);
+    }
+
+    // 4. Ginásio / Vídeos ou caso sem km: cálculo por MET e tempo
+    const est = Math.round(currentPreset.met * userWeight * durHours);
     return Math.max(10, est);
-  }, [duration, currentPreset.met, userWeight]);
+  }, [selectedPresetId, distanceKm, duration, currentPreset.met, userWeight]);
+
+  // Cálculo da velocidade média (km/h)
+  const speedKmh = useMemo(() => {
+    const dist = parseFloat(distanceKm);
+    const dur = parseFloat(duration);
+    if (isNaN(dist) || isNaN(dur) || dur <= 0 || dist <= 0) return null;
+    return ((dist / dur) * 60).toFixed(1);
+  }, [distanceKm, duration]);
+
+  // Cálculo do Pace (min/km)
+  const paceMinPerKm = useMemo(() => {
+    const dist = parseFloat(distanceKm);
+    const dur = parseFloat(duration);
+    if (isNaN(dist) || isNaN(dur) || dur <= 0 || dist <= 0) return null;
+    const totalMinPerKm = dur / dist;
+    const mins = Math.floor(totalMinPerKm);
+    const secs = Math.round((totalMinPerKm - mins) * 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs} /km`;
+  }, [distanceKm, duration]);
 
   // Atualizar data inicial quando o modal abre
   useEffect(() => {
@@ -135,17 +189,18 @@ export default function AddActivityModal({
     }
   }, [initialDate, isOpen]);
 
-  // Atualizar as calorias sugeridas automaticamente quando a duração ou tipo mudam (se o utilizador não tiver editado manualmente)
+  // Atualizar as calorias sugeridas automaticamente quando a distância, duração ou tipo mudam
   useEffect(() => {
     if (!isCaloriesCustom) {
       setCalories(String(autoEstimatedCalories));
     }
   }, [autoEstimatedCalories, isCaloriesCustom]);
 
-  // Atualizar título, duração e calorias ao trocar de preset
+  // Atualizar preset
   const handleSelectPreset = (preset) => {
     setSelectedPresetId(preset.id);
     setIsCaloriesCustom(false);
+    setDistanceKm(preset.defaultDistance || '');
 
     if (preset.id === 'ginasio' && workouts.length > 0) {
       const first = workouts[0];
@@ -216,7 +271,12 @@ export default function AddActivityModal({
     e.preventDefault();
     if (!title.trim() || Number(duration) <= 0) return;
 
-    // Criar a data ISO com a hora às 12:00 da data selecionada para evitar problemas de fuso horário
+    // Se a atividade requer distância obrigatória (Caminhada ou Corrida), validar
+    if (currentPreset.requiresDistance && (!distanceKm || parseFloat(distanceKm) <= 0)) {
+      alert('Por favor insere a distância percorrida em km para podermos calcular as calorias exatas.');
+      return;
+    }
+
     const [y, m, d] = customDate.split('-').map(Number);
     const activityDate = new Date(y, m - 1, d, 12, 0, 0);
 
@@ -231,6 +291,8 @@ export default function AddActivityModal({
       duracaoMinutos: Number(duration),
       caloriasEstimadas: isNaN(finalCalories) ? autoEstimatedCalories : finalCalories,
       distanciaKm: distanceKm ? parseFloat(distanceKm) : null,
+      ritmoPace: paceMinPerKm || null,
+      velocidadeKmh: speedKmh ? parseFloat(speedKmh) : null,
       foco: currentPreset.foco,
       link: videoUrl.trim() || null,
       youtubeId: youtubeInfo?.id || extractYoutubeId(videoUrl) || null,
@@ -256,6 +318,11 @@ export default function AddActivityModal({
     }
     onClose();
   };
+
+  const hasDistance =
+    selectedPresetId === 'caminhada' ||
+    selectedPresetId === 'corrida' ||
+    selectedPresetId === 'spinning';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sand-600/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
@@ -402,67 +469,165 @@ export default function AddActivityModal({
             />
           </div>
 
-          {/* Duração & Calorias (Campo de Calorias agora editável livremente!) */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block mb-1">
-                Duração (min)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="5"
-                  max="300"
-                  required
-                  value={duration}
-                  onChange={(e) => {
-                    const val = Math.max(1, parseInt(e.target.value) || 0);
-                    setDuration(val);
-                  }}
-                  className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
-                />
-                <span className="absolute right-3 top-2.5 text-xs text-sand-400">min</span>
+          {/* MÉTRICAS PRINCIPAIS: Duração, Distância (Essencial!) e Calorias */}
+          <div className="space-y-2">
+            <div className={`grid ${hasDistance ? 'grid-cols-2' : 'grid-cols-2'} gap-2`}>
+              {/* Duração */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block mb-1">
+                  Duração (min)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="5"
+                    max="300"
+                    required
+                    value={duration}
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value) || 0);
+                      setDuration(val);
+                    }}
+                    className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs text-sand-400">min</span>
+                </div>
               </div>
+
+              {/* Distância (Essencial para Caminhada e Corrida!) */}
+              {hasDistance ? (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-sand-500 flex items-center gap-1">
+                      <span>Distância</span>
+                      {currentPreset.requiresDistance && (
+                        <span className="text-roseGold-500 font-extrabold">*</span>
+                      )}
+                    </label>
+                    {speedKmh && (
+                      <span className="text-[10px] font-bold text-roseGold-600 font-mono">
+                        {speedKmh} km/h
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.1"
+                      max="100"
+                      required={currentPreset.requiresDistance}
+                      placeholder="Ex: 4.5"
+                      value={distanceKm}
+                      onChange={(e) => {
+                        setDistanceKm(e.target.value);
+                        setIsCaloriesCustom(false); // Recalcular calorias automaticamente com a nova distância!
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-sand-400 font-bold">km</span>
+                  </div>
+                </div>
+              ) : (
+                /* Se não tiver distância, coloca as Calorias na 2ª coluna */
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block">
+                      Calorias
+                    </label>
+                    {isCaloriesCustom && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCalories(String(autoEstimatedCalories));
+                          setIsCaloriesCustom(false);
+                        }}
+                        className="text-[10px] text-roseGold-600 font-bold hover:underline"
+                        title="Repor valor estimado"
+                      >
+                        Repor
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="5000"
+                      placeholder={`~${autoEstimatedCalories}`}
+                      value={calories}
+                      onChange={(e) => {
+                        setCalories(e.target.value);
+                        setIsCaloriesCustom(true);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-sand-400">kcal</span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block">
-                  Calorias
-                </label>
-                {isCaloriesCustom && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCalories(String(autoEstimatedCalories));
-                      setIsCaloriesCustom(false);
-                    }}
-                    className="text-[10px] text-roseGold-600 font-bold hover:underline"
-                    title="Repor valor estimado"
-                  >
-                    Repor
-                  </button>
-                )}
+            {/* Linha das Calorias e Ritmo para atividades com Distância */}
+            {hasDistance && (
+              <div className="p-2.5 rounded-2xl bg-cream-50/80 border border-sand-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-roseGold-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-sand-500">
+                      Gasto Calórico Estimado
+                    </span>
+                  </div>
+                  {isCaloriesCustom && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCalories(String(autoEstimatedCalories));
+                        setIsCaloriesCustom(false);
+                      }}
+                      className="text-[10px] text-roseGold-600 font-bold hover:underline"
+                    >
+                      Repor (~{autoEstimatedCalories})
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="5000"
+                      placeholder={`~${autoEstimatedCalories}`}
+                      value={calories}
+                      onChange={(e) => {
+                        setCalories(e.target.value);
+                        setIsCaloriesCustom(true);
+                      }}
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-sand-200 text-xs font-extrabold text-sand-500 focus:outline-none focus:border-roseGold-400"
+                    />
+                    <span className="absolute right-3 top-2 text-xs text-sand-400">kcal</span>
+                  </div>
+
+                  {paceMinPerKm && (
+                    <div className="px-2.5 py-1.5 rounded-xl bg-white border border-sand-200 text-right">
+                      <span className="text-[9px] text-sand-400 block uppercase font-bold">Ritmo (Pace)</span>
+                      <span className="text-xs font-extrabold text-roseGold-600 font-mono">
+                        {paceMinPerKm}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-[10px] text-sand-400">
+                  {selectedPresetId === 'corrida'
+                    ? `Calculado: ${distanceKm || 0} km × ${userWeight} kg × 1.036 (podes editar com o valor do relógio).`
+                    : selectedPresetId === 'caminhada'
+                    ? `Calculado: ${distanceKm || 0} km × ${userWeight} kg × 0.75 (podes editar com o valor do relógio).`
+                    : 'Estimado com base no teu peso e esforço (editável).'}
+                </p>
               </div>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  max="5000"
-                  placeholder={`~${autoEstimatedCalories}`}
-                  value={calories}
-                  onChange={(e) => {
-                    setCalories(e.target.value);
-                    setIsCaloriesCustom(true);
-                  }}
-                  className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
-                />
-                <span className="absolute right-3 top-2.5 text-xs text-sand-400">kcal</span>
-              </div>
-              <span className="text-[10px] text-sand-400 block mt-0.5 px-0.5">
-                {isCaloriesCustom ? 'Valor manual (relógio/smartwatch)' : `Estimado (~${autoEstimatedCalories} kcal)`}
-              </span>
-            </div>
+            )}
           </div>
 
           {/* Atalhos Rápidos de Duração */}
@@ -482,28 +647,6 @@ export default function AddActivityModal({
               </button>
             ))}
           </div>
-
-          {/* Campo extra de Distância para Caminhada / Corrida */}
-          {(selectedPresetId === 'caminhada' || selectedPresetId === 'corrida') && (
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-sand-400 block mb-1">
-                Distância (opcional)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  placeholder="Ex: 4.5"
-                  value={distanceKm}
-                  onChange={(e) => setDistanceKm(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500 focus:outline-none focus:border-roseGold-400"
-                />
-                <span className="absolute right-3 top-2.5 text-xs text-sand-400">km</span>
-              </div>
-            </div>
-          )}
 
           {/* Notas Opcionais */}
           <div>
