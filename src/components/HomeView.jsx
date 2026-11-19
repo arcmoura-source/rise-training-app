@@ -494,6 +494,9 @@ export default function HomeView({
     if (gymId === 'treino-3') {
       return feedbackPrefix + 'Foco em Superiores e Postura! Nas remadas e puxadas, pensa em "puxar com os cotovelos" para sentires as costas e os dorsais. Mantém o peito aberto e os ombros afastados das orelhas!';
     }
+    if (gymId === 'treino-4') {
+      return feedbackPrefix + 'Foco em Core e Definição Abdominal! No Cable Kneeling Crunch e no Rollout, não uses o balanço do corpo. Concentra a força no abdómen profundo e controla a respiração a cada repetição!';
+    }
 
     return feedbackPrefix + 'No ginásio, a consistência de cargas e o registo de cada série fazem toda a magia. Mantém a técnica impecável e desafia-te!';
   }, [workoutMode, recommendedHomeVideo, recommendedGymWorkout, feedbackAnalysis, hasTrainedToday, todayWorkouts]);

@@ -247,6 +247,66 @@ export const DEFAULT_WORKOUTS = [
         ]
       }
     ]
+  },
+  {
+    id: "treino-4",
+    titulo: "Treino 4: Core & Abdómen",
+    tag: "Core & Abs",
+    foco: "Fortalecimento do Core, Estabilidade & Definição Abdominal",
+    cor: "from-roseGold-400 to-sand-400",
+    icone: "⚡",
+    muscleIcon: "⚡",
+    duracaoEstimada: "30-40 min",
+    exercicios: [
+      {
+        id: "ex-4-1",
+        nome: "Crunch na Polia Alta (Cable Kneeling Crunch)",
+        categoria: "Abdómen Superior & Médio",
+        dica: "De joelhos virada para a polia ou de costas. Mantém a bacia fixa e contrai o abdómen aproximando o esterno do umbigo, sem puxar com os braços.",
+        gifUrl: "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif",
+        series: [
+          { serie: 1, peso: 20, reps: 15, concluida: false },
+          { serie: 2, peso: 25, reps: 12, concluida: false },
+          { serie: 3, peso: 30, reps: 10, concluida: false },
+        ]
+      },
+      {
+        id: "ex-4-2",
+        nome: "Elevação de Pernas na Cadeira de Capitão (Captain's Chair Leg Raise)",
+        categoria: "Abdómen Inferior & Flexores da Anca",
+        dica: "Antebraços bem apoiados nas almofadas, ombros longe das orelhas. Eleva os joelhos ou pernas em direção ao peito enrolando ligeiramente a bacia para recrutar os inferiores.",
+        gifUrl: "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/captains-chair-straight-leg-raise.gif",
+        series: [
+          { serie: 1, peso: 0, reps: 12, concluida: false },
+          { serie: 2, peso: 0, reps: 12, concluida: false },
+          { serie: 3, peso: 0, reps: 10, concluida: false },
+        ]
+      },
+      {
+        id: "ex-4-3",
+        nome: "Pallof Press na Polia (Cable Pallof Press)",
+        categoria: "Anti-Rotação & Oblíquos",
+        dica: "Posição lateral à polia com pés à largura dos ombros e joelhos destrancados. Estende os braços à frente do peito resistindo à força da polia que tenta rodar o teu tronco.",
+        gifUrl: "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/band-horizontal-pallof-press.gif",
+        series: [
+          { serie: 1, peso: 7.5, reps: 12, concluida: false },
+          { serie: 2, peso: 10, reps: 10, concluida: false },
+          { serie: 3, peso: 10, reps: 10, concluida: false },
+        ]
+      },
+      {
+        id: "ex-4-4",
+        nome: "Roda Abdominal (Ab Wheel Rollout)",
+        categoria: "Estabilidade Profunda do Core",
+        dica: "De joelhos, começa com a anca alinhada e abdómen bem ativo. Rola a roda à frente até onde manténs a lombar neutra (sem arquear as costas) e puxa de volta pelo abdómen.",
+        gifUrl: "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/wheel-rollerout.gif",
+        series: [
+          { serie: 1, peso: 0, reps: 10, concluida: false },
+          { serie: 2, peso: 0, reps: 10, concluida: false },
+          { serie: 3, peso: 0, reps: 8, concluida: false },
+        ]
+      }
+    ]
   }
 ];
 
