@@ -1,16 +1,29 @@
 import React, { useState } from 'react';
 import {
   Dumbbell, Flame, Sparkles, Play, Plus, ChevronDown, ChevronUp,
-  Clock, Trash2, X, Video, Pencil, Check, Save
+  Clock, Trash2, X, Video, Pencil, Check, Save, Wand2, Loader2
 } from 'lucide-react';
 import { getMuscleIcon, MUSCLE_OPTIONS } from '../utils/muscleIcons';
+import { generateWorkoutWithAi } from '../services/workoutGenerator';
 
-export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkout, onDeleteWorkout, onUpdateWorkout }) {
+export default function WorkoutsListView({
+  workouts,
+  onStartWorkout,
+  onAddWorkout,
+  onDeleteWorkout,
+  onUpdateWorkout,
+  profile,
+}) {
   const [expandedId, setExpandedId] = useState(workouts[0]?.id || 'treino-1');
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeGifId, setActiveGifId] = useState(null);
   const [editingId, setEditingId] = useState(null);        // which workout is in edit mode
   const [editDraft, setEditDraft] = useState(null);         // draft copy while editing
+
+  // ── AI Workout Generation State ──────────────────────────────────────────
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState('');
 
   // ── New Workout Form State ───────────────────────────────────────────────
   const [novoTitulo, setNovoTitulo] = useState('');
@@ -90,6 +103,32 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
     setEditDraft(d);
   };
 
+  // ── AI Workout Generation Handler ───────────────────────────────────────
+  const handleAiGenerate = async (queryToUse) => {
+    const textPrompt = (queryToUse || aiPrompt || '').trim();
+    setIsGenerating(true);
+    setAiSuccessMessage('');
+
+    try {
+      const generated = await generateWorkoutWithAi(textPrompt, profile);
+      if (generated) {
+        setNovoTitulo(generated.titulo || '');
+        setNovaTag(generated.tag || '');
+        setNovoFoco(generated.foco || '');
+        setNovaDuracao(generated.duracaoEstimada || '45 min');
+        setNovoMuscleIcon(generated.muscleIcon || getMuscleIcon(generated));
+        if (Array.isArray(generated.exercicios) && generated.exercicios.length > 0) {
+          setExercicios(generated.exercicios);
+        }
+        setAiSuccessMessage('Rotina gerada com sucesso! Revê ou ajusta os detalhes abaixo.');
+      }
+    } catch (err) {
+      console.error('Falha ao gerar treino com AI:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // ── New Workout Form ─────────────────────────────────────────────────────
   const handleAddExField = () =>
     setExercicios([...exercicios, { nome: '', dica: '', series: defaultSeries() }]);
@@ -129,6 +168,7 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
     onAddWorkout(novo);
     setShowAddModal(false);
     setNovoTitulo(''); setNovaTag(''); setNovoFoco(''); setNovaDuracao('45 min'); setNovoMuscleIcon('🏋️‍♀️');
+    setAiPrompt(''); setAiSuccessMessage('');
     setExercicios([{ nome: '', dica: '', series: defaultSeries() }]);
     setExpandedId(novo.id);
   };
@@ -489,14 +529,112 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
       {/* ── MODAL: Adicionar Novo Treino ── */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sand-600/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-cream-50 rounded-3xl p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto shadow-2xl border border-sand-200 space-y-4">
+          <div className="bg-cream-50 rounded-3xl p-5 max-w-md w-full max-h-[88vh] overflow-y-auto shadow-2xl border border-sand-200 space-y-4">
             <div className="flex items-center justify-between border-b border-sand-200 pb-3">
-              <div className="flex items-center gap-2 text-roseGold-500 font-bold text-sm">
-                <Plus className="w-5 h-5" /> Criar Novo Treino
+              <div className="flex items-center gap-2 text-roseGold-600 font-extrabold text-sm">
+                <div className="w-7 h-7 rounded-lg bg-roseGold-100 flex items-center justify-center text-roseGold-600">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <span>Novo Treino de Ginásio</span>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="p-1 rounded-xl text-sand-400 hover:text-sand-600">
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setAiSuccessMessage('');
+                }}
+                className="p-1 rounded-xl text-sand-400 hover:text-sand-600"
+              >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* ── Cartão de Geração com AI Coach ── */}
+            <div className="bg-gradient-to-br from-roseGold-50/90 via-cream-100/90 to-white rounded-2xl p-3.5 border border-roseGold-200 shadow-soft space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-roseGold-600 flex items-center gap-1.5">
+                  <Wand2 className="w-4 h-4 text-roseGold-500" />
+                  Gerar Rotina com AI Coach
+                </span>
+                <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-roseGold-100 text-roseGold-700 border border-roseGold-200">
+                  Inteligente
+                </span>
+              </div>
+              <p className="text-[11px] text-sand-500 leading-relaxed">
+                Descreve o teu objetivo ou escolhe uma das sugestões para criar automaticamente os exercícios, repetições, cargas e dicas técnicas:
+              </p>
+
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Ex: Ombros e braços em 40 min, Glúteos 4 exercícios..."
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAiGenerate(aiPrompt);
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 rounded-xl bg-white border border-roseGold-200 text-xs text-sand-600 placeholder-sand-300 focus:outline-none focus:border-roseGold-400 shadow-2xs"
+                />
+                <button
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => handleAiGenerate(aiPrompt)}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-roseGold-400 to-roseGold-500 hover:from-roseGold-500 hover:to-roseGold-600 text-white text-xs font-bold shadow-md shadow-roseGold-200 flex items-center gap-1.5 shrink-0 disabled:opacity-60 transition active:scale-95"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>A criar...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 fill-current" />
+                      <span>Gerar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Sugestões Rápidas de Treinos */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                {[
+                  { label: 'Glúteos & Posterior', icon: '🍑' },
+                  { label: 'Quadríceps & Pernas', icon: '🦵' },
+                  { label: 'Superiores & Braços', icon: '💪' },
+                  { label: 'Core & Oblíquos', icon: '⚡' },
+                  { label: 'Full Body 40 min', icon: '🏋️‍♀️' },
+                  { label: 'Mobilidade & Postura', icon: '🧘‍♀️' },
+                ].map((chip) => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() => {
+                      setAiPrompt(chip.label);
+                      handleAiGenerate(chip.label);
+                    }}
+                    className="px-2.5 py-1 rounded-xl bg-white/95 hover:bg-white text-[11px] font-semibold text-sand-600 border border-sand-200 hover:border-roseGold-300 transition flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                  >
+                    <span>{chip.icon}</span>
+                    <span>{chip.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {aiSuccessMessage && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2 animate-fade-in">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{aiSuccessMessage}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1 text-sand-400">
+              <div className="h-px bg-sand-200 flex-1" />
+              <span className="text-[10px] uppercase font-bold tracking-wider">Detalhes da Rotina</span>
+              <div className="h-px bg-sand-200 flex-1" />
             </div>
 
             <form onSubmit={handleSaveNew} className="space-y-3.5">

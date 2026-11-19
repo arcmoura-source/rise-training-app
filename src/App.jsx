@@ -270,6 +270,7 @@ export default function App() {
                   onAddWorkout={handleAddWorkout}
                   onUpdateWorkout={handleUpdateWorkout}
                   onDeleteWorkout={handleDeleteWorkout}
+                  profile={profile}
                 />
               )}
 
