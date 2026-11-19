@@ -163,10 +163,9 @@ export function getFeedbackAdaptedStrategy(
 ) {
   if (!feedbackAnalysis) {
     if (hasTrainedToday) {
-      const todayTitle = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || 'Treino';
       return {
         ...baseStrategy,
-        motivo: `Treino de hoje já registado com sucesso (${todayTitle})! 🎉 O teu estímulo diário está garantido. Para hoje, a prioridade é o descanso muscular e hidratação. A recomendação abaixo é a previsão para a tua próxima sessão (amanhã): ${baseStrategy.targetLabel}.`,
+        motivo: `Treino de hoje já registado com sucesso! 🎉 O teu estímulo diário está garantido. Para hoje, a prioridade é o descanso muscular e hidratação. A recomendação abaixo é a previsão para a tua próxima sessão (amanhã): ${baseStrategy.targetLabel}.`,
         feedbackNotice: {
           tipo: 'success',
           titulo: 'Treino de hoje concluído ✓',
@@ -196,7 +195,6 @@ export function getFeedbackAdaptedStrategy(
 
   // Se o utilizador JÁ TREINOU HOJE, o texto nunca deve dizer "para hoje é treinar X"
   if (hasTrainedToday) {
-    const todayTitles = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || treinoTitulo;
     const feedbackQuote = rawFeedback ? ` ("${rawFeedback}")` : tags.length > 0 ? ` (${tags[0]})` : '';
 
     // Se toda a meta semanal de treinos já foi cumprida, não sugerir treino de força para o dia seguinte
@@ -204,7 +202,7 @@ export function getFeedbackAdaptedStrategy(
       return {
         ...baseStrategy,
         gymId: null,
-        motivo: `Meta da semana 100% cumprida (${todayTitles})! 🏆 Parabéns! Já realizaste todos os grupos musculares da semana. Todo o estímulo de hipertrofia por esta semana está concluído com distinção — agora a prioridade máxima é descanso merecido, hidratação e sono reparador até à próxima semana!`,
+        motivo: `Meta da semana 100% cumprida! 🏆 Parabéns! Já realizaste todos os grupos musculares da semana. Todo o estímulo de hipertrofia por esta semana está concluído com distinção — agora a prioridade máxima é descanso merecido, hidratação e sono reparador até à próxima semana!`,
         feedbackNotice: {
           tipo: 'success',
           titulo: 'Meta Semanal Atingida! 🏆',
@@ -219,11 +217,11 @@ export function getFeedbackAdaptedStrategy(
         ...baseStrategy,
         focusArea: isLowerBody ? 'upper' : 'mobility',
         targetLabel: isLowerBody ? 'Superiores & Tronco (Amanhã)' : 'Mobilidade Suave (Amanhã)',
-        motivo: `Treino de hoje concluído! 🎉 Como em ${todayTitles} registaste desconforto articular${feedbackQuote}, agora o segredo é repouso e hidratação para recuperar. Para a tua próxima sessão (amanhã), a recomendação adapta-se para proteger as tuas articulações com foco em ${baseStrategy.targetLabel}.`,
+        motivo: `Treino de hoje concluído com sucesso! 🎉 Como registaste desconforto articular${feedbackQuote}, agora o segredo é repouso e hidratação para recuperar. Para a tua próxima sessão (amanhã), a recomendação adapta-se para proteger as tuas articulações com foco em ${baseStrategy.targetLabel}.`,
         feedbackNotice: {
           tipo: 'warning',
           titulo: 'Treino de hoje feito • Proteção articular',
-          texto: `Repouso hoje após desconforto em ${todayTitles}.`,
+          texto: `Repouso hoje após desconforto registado.`,
         },
         adaptationType: 'today_completed_pain',
       };
@@ -232,11 +230,11 @@ export function getFeedbackAdaptedStrategy(
     if (isFatigueOrHeavy) {
       return {
         ...baseStrategy,
-        motivo: `Excelente esforço! O teu treino de hoje (${todayTitles}) já está concluído. Como sentiste grande exigência física${feedbackQuote}, o foco para o resto do dia é descansar, nutrir e dormir bem. Para a tua próxima sessão (amanhã), a recomendação do plano será ${baseStrategy.targetLabel}.`,
+        motivo: `Excelente esforço! O teu treino de hoje já está concluído com sucesso. Como sentiste grande exigência física${feedbackQuote}, o foco para o resto do dia é descansar, nutrir e dormir bem. Para a tua próxima sessão (amanhã), a recomendação do plano será ${baseStrategy.targetLabel}.`,
         feedbackNotice: {
           tipo: 'info',
           titulo: 'Treino de hoje feito • Recuperação',
-          texto: `Recuperação prioritária após esforço elevado em ${todayTitles}.`,
+          texto: `Recuperação prioritária após esforço elevado.`,
         },
         adaptationType: 'today_completed_fatigue',
       };
@@ -246,11 +244,11 @@ export function getFeedbackAdaptedStrategy(
       const starsStr = '★'.repeat(rating);
       return {
         ...baseStrategy,
-        motivo: `Treino de hoje concluído com nota máxima! 🎉 Fantástica energia em ${todayTitles} (${starsStr}${feedbackQuote}). O teu trabalho muscular por hoje está feito! Para a tua próxima sessão (amanhã), continuaremos esse excelente ritmo com foco em ${baseStrategy.targetLabel}.`,
+        motivo: `Treino de hoje concluído com nota máxima! 🎉 Fantástica energia (${starsStr}${feedbackQuote}). O teu trabalho muscular por hoje está feito! Para a tua próxima sessão (amanhã), continuaremos esse excelente ritmo com foco em ${baseStrategy.targetLabel}.`,
         feedbackNotice: {
           tipo: 'success',
           titulo: 'Treino de hoje concluído ✓',
-          texto: `Excelente consistência em ${todayTitles}.`,
+          texto: `Excelente consistência e energia.`,
         },
         adaptationType: 'today_completed_energy',
       };
@@ -258,7 +256,7 @@ export function getFeedbackAdaptedStrategy(
 
     return {
       ...baseStrategy,
-      motivo: `Treino de hoje já registado com sucesso (${todayTitles})! 🎉 O teu trabalho muscular por hoje está cumprido. Para o resto do dia, a prioridade é descansar, hidratar e alimentar as tuas fibras musculares. Para a tua próxima sessão (amanhã), o foco será ${baseStrategy.targetLabel}.`,
+      motivo: `Treino de hoje já registado com sucesso! 🎉 O teu trabalho muscular por hoje está cumprido. Para o resto do dia, a prioridade é descansar, hidratar e alimentar as tuas fibras musculares. Para a tua próxima sessão (amanhã), o foco será ${baseStrategy.targetLabel}.`,
       feedbackNotice: {
         tipo: 'success',
         titulo: 'Treino de hoje concluído ✓',

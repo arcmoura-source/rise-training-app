@@ -198,7 +198,7 @@ export default function HomeView({
         focusArea: 'quads',
         targetLabel: hasTrainedToday ? 'Próxima Sessão: Quadríceps & Pernas' : 'Quadríceps & Pernas',
         motivo: hasTrainedToday
-          ? `Treino de hoje já registado (${todayTitles})! 🎉 O teu estímulo diário está concluído. Para a tua próxima sessão (amanhã), a recomendação do plano será Quadríceps & Pernas.`
+          ? `Treino de hoje já registado com sucesso! 🎉 O teu estímulo diário está concluído. Para a tua próxima sessão (amanhã), a recomendação do plano será Quadríceps & Pernas.`
           : isWeekStart
           ? 'Nova semana, novo foco! Começa a semana em grande com o teu estímulo principal em Quadríceps & Pernas.'
           : 'Estímulo prioritário da semana nas pernas e grandes grupos musculares com foco em hipertrofia.',
@@ -280,7 +280,7 @@ export default function HomeView({
         focusArea: 'mobility',
         targetLabel: 'Meta Semanal 100% Concluída! 🏆',
         motivo: hasTrainedToday
-          ? `Meta da semana 100% cumprida (${todayTitles})! 🏆 Parabéns! Já cobriste todos os grupos musculares da semana. Todo o trabalho de hipertrofia por esta semana está concluído com distinção — agora o foco absoluto é descanso merecido, hidratação e sono reparador. Cargas pesadas só na próxima semana!`
+          ? `Meta da semana 100% cumprida! 🏆 Parabéns! Já cobriste todos os grupos musculares da semana. Todo o trabalho de hipertrofia por esta semana está concluído com distinção — agora o foco absoluto é descanso merecido, hidratação e sono reparador. Cargas pesadas só na próxima semana!`
           : 'Meta semanal concluída com chave de ouro! Cobriste o corpo todo a 100%. A sugestão agora é descanso merecido ou uma sessão relaxante de mobilidade e alongamento.',
         gymId: null,
         isAllWorkoutsDone: true,
