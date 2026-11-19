@@ -520,13 +520,6 @@ export default function HomeView({
             <h1 className="text-xl font-extrabold text-sand-500 tracking-tight leading-tight">
               Olá, {profile.nome} ✨
             </h1>
-            <p className="text-xs text-sand-400">
-              {hasTrainedToday && isTodaySelected
-                ? 'Treino de hoje já concluído! 🎉 Foco em descanso e boa recuperação'
-                : isTodaySelected
-                ? 'O teu plano personalizado para hoje'
-                : 'A rever plano da semana'}
-            </p>
           </div>
         </div>
 
