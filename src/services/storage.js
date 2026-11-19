@@ -260,6 +260,19 @@ export const getWorkouts = () => {
         }
       }
 
+      // Ensure Treino 4 uses Weighted Decline Crunch (5kg, 10kg)
+      if (w.id === 'treino-4') {
+        const defEx4_1 = defW.exercicios.find(e => e.id === 'ex-4-1');
+        const ex41Idx = currentExs.findIndex(e => e.id === 'ex-4-1' || e.nome?.toLowerCase().includes('crunch') || e.nome?.toLowerCase().includes('polia'));
+        if (defEx4_1 && ex41Idx >= 0) {
+          currentExs[ex41Idx] = {
+            ...currentExs[ex41Idx],
+            ...defEx4_1,
+            series: defEx4_1.series
+          };
+        }
+      }
+
       const updatedEx = currentExs.map(ex => {
         const defEx = defW.exercicios.find(de => de.id === ex.id) ||
                       defW.exercicios.find(de => de.nome.toLowerCase() === ex.nome?.toLowerCase());

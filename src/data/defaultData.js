@@ -260,14 +260,14 @@ export const DEFAULT_WORKOUTS = [
     exercicios: [
       {
         id: "ex-4-1",
-        nome: "Crunch na Polia Alta (Cable Kneeling Crunch)",
+        nome: "Ab Crunch no Banco Inclinado com Peso (Weighted Decline Crunch)",
         categoria: "Abdómen Superior & Médio",
-        dica: "De joelhos virada para a polia ou de costas. Mantém a bacia fixa e contrai o abdómen aproximando o esterno do umbigo, sem puxar com os braços.",
-        gifUrl: "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/cable-kneeling-crunch.gif",
+        dica: "Segura o disco (5 kg a 10 kg) encostado ao peito. Enrola o tronco aproximando as costelas da bacia com contração máxima de 1 segundo no topo, mantendo o movimento focado estritamente no abdómen sem puxar o pescoço.",
+        gifUrl: "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/weighted-decline-sit-up.gif",
         series: [
-          { serie: 1, peso: 20, reps: 15, concluida: false },
-          { serie: 2, peso: 25, reps: 12, concluida: false },
-          { serie: 3, peso: 30, reps: 10, concluida: false },
+          { serie: 1, peso: 5, reps: 15, concluida: false },
+          { serie: 2, peso: 10, reps: 12, concluida: false },
+          { serie: 3, peso: 10, reps: 10, concluida: false },
         ]
       },
       {
