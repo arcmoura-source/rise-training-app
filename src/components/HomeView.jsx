@@ -20,6 +20,7 @@ import {
 import { YOUTUBE_VIDEOS, CANAIS_FAVORITOS } from '../data/videoData';
 import AddActivityModal from './AddActivityModal';
 import { analyzeRecentFeedback, getFeedbackAdaptedStrategy } from '../services/feedbackAdvisor';
+import { getMuscleIcon } from '../utils/muscleIcons';
 
 const STORAGE_LIKED = 'rise_liked_videos';
 function getLiked() {
@@ -983,15 +984,20 @@ export default function HomeView({
               )}
 
               <div className="flex items-center justify-between">
-                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                  hasTrainedToday
-                    ? 'bg-cream-200 text-sand-500'
-                    : 'bg-roseGold-100 text-roseGold-600'
-                }`}>
-                  {hasTrainedToday
-                    ? `Próxima Sessão (Amanhã) • ${recommendedGymWorkout.tag}`
-                    : `Recomendado • ${recommendedGymWorkout.tag}`}
-                </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-roseGold-50 border border-sand-100 flex items-center justify-center text-base shadow-2xs">
+                    <span>{getMuscleIcon(recommendedGymWorkout)}</span>
+                  </div>
+                  <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                    hasTrainedToday
+                      ? 'bg-cream-200 text-sand-500'
+                      : 'bg-roseGold-100 text-roseGold-600'
+                  }`}>
+                    {hasTrainedToday
+                      ? `Próxima Sessão (Amanhã) • ${recommendedGymWorkout.tag}`
+                      : `Recomendado • ${recommendedGymWorkout.tag}`}
+                  </span>
+                </div>
                 <span className="text-xs text-sand-400 flex items-center gap-1">
                   <Clock className="w-3 h-3" /> {recommendedGymWorkout.duracaoEstimada}
                 </span>

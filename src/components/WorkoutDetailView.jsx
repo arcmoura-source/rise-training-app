@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Check, CheckCircle2, Clock, Flame, Info, Sparkles, Timer, Eye, EyeOff, Video } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import FeedbackModal from './FeedbackModal';
+import { getMuscleIcon } from '../utils/muscleIcons';
 
 export default function WorkoutDetailView({
   workout,
@@ -136,18 +137,23 @@ export default function WorkoutDetailView({
       {/* Workout Info & Progress Bar */}
       <div className="bg-white rounded-3xl p-5 shadow-soft border border-sand-100">
         <div className="flex items-start justify-between">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-roseGold-500">
-              Sessão em Curso
-            </span>
-            <h1 className="text-xl font-extrabold text-sand-500 mt-0.5">
-              {activeWorkout.titulo}
-            </h1>
-            <p className="text-xs text-sand-400 mt-0.5">{activeWorkout.foco}</p>
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-roseGold-50 border border-sand-100 flex items-center justify-center text-xl shadow-2xs shrink-0 mt-0.5">
+              <span>{getMuscleIcon(activeWorkout)}</span>
+            </div>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-roseGold-500">
+                Sessão em Curso
+              </span>
+              <h1 className="text-xl font-extrabold text-sand-500 mt-0.5">
+                {activeWorkout.titulo}
+              </h1>
+              <p className="text-xs text-sand-400 mt-0.5">{activeWorkout.foco}</p>
+            </div>
           </div>
           <button
             onClick={onOpenTimer}
-            className="w-10 h-10 rounded-2xl bg-roseGold-100 text-roseGold-500 flex items-center justify-center hover:bg-roseGold-200 transition"
+            className="w-10 h-10 rounded-2xl bg-roseGold-100 text-roseGold-500 flex items-center justify-center hover:bg-roseGold-200 transition shrink-0 ml-2"
             title="Cronómetro de Descanso"
           >
             <Timer className="w-5 h-5" />

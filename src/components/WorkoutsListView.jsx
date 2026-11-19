@@ -3,6 +3,7 @@ import {
   Dumbbell, Flame, Sparkles, Play, Plus, ChevronDown, ChevronUp,
   Clock, Trash2, X, Video, Pencil, Check, Save
 } from 'lucide-react';
+import { getMuscleIcon, MUSCLE_OPTIONS } from '../utils/muscleIcons';
 
 export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkout, onDeleteWorkout, onUpdateWorkout }) {
   const [expandedId, setExpandedId] = useState(workouts[0]?.id || 'treino-1');
@@ -16,6 +17,7 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
   const [novaTag, setNovaTag] = useState('');
   const [novoFoco, setNovoFoco] = useState('');
   const [novaDuracao, setNovaDuracao] = useState('45 min');
+  const [novoMuscleIcon, setNovoMuscleIcon] = useState('🏋️‍♀️');
   const [exercicios, setExercicios] = useState([
     { nome: '', dica: '', series: defaultSeries() }
   ]);
@@ -115,6 +117,7 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
       duracaoEstimada: novaDuracao.trim() || '45 min',
       cor: 'from-roseGold-400 to-roseGold-600',
       icone: 'Flame',
+      muscleIcon: novoMuscleIcon || getMuscleIcon({ titulo: novoTitulo, tag: novaTag, foco: novoFoco }),
       exercicios: list.map((ex, i) => ({
         id: `ex-${Date.now()}-${i}`,
         nome: ex.nome.trim() || `Exercício ${i + 1}`,
@@ -125,7 +128,7 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
 
     onAddWorkout(novo);
     setShowAddModal(false);
-    setNovoTitulo(''); setNovaTag(''); setNovoFoco(''); setNovaDuracao('45 min');
+    setNovoTitulo(''); setNovaTag(''); setNovoFoco(''); setNovaDuracao('45 min'); setNovoMuscleIcon('🏋️‍♀️');
     setExercicios([{ nome: '', dica: '', series: defaultSeries() }]);
     setExpandedId(novo.id);
   };
@@ -206,11 +209,14 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
                     </div>
                   )}
 
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md ${
-                    isT1 ? 'bg-gradient-to-tr from-roseGold-400 to-roseGold-500 shadow-roseGold-200'
-                         : 'bg-gradient-to-tr from-sand-400 to-roseGold-400 shadow-sand-200'
-                  }`}>
-                    {isT1 ? <Flame className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                  <div
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-sm border border-sand-100 ${
+                      isT1 ? 'bg-roseGold-50 text-roseGold-600'
+                           : 'bg-sand-100 text-sand-600'
+                    }`}
+                    title={w.foco || w.tag}
+                  >
+                    <span>{getMuscleIcon(isEditing ? editDraft : w)}</span>
                   </div>
 
                   {!isEditing && (
@@ -255,6 +261,29 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
                           onChange={(e) => setEditDraft({ ...draft, duracaoEstimada: e.target.value })}
                           className="w-full mt-0.5 px-2.5 py-1.5 rounded-xl bg-cream-50 border border-sand-200 text-xs text-sand-500 focus:outline-none focus:border-roseGold-400"
                         />
+                      </div>
+                      <div className="col-span-2 pt-1">
+                        <label className="text-[9px] font-bold text-sand-400 uppercase block mb-1">Ícone do Músculo em Foco</label>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {MUSCLE_OPTIONS.map((opt) => {
+                            const isSelected = (draft.muscleIcon || getMuscleIcon(draft)) === opt.emoji;
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => setEditDraft({ ...draft, muscleIcon: opt.emoji })}
+                                className={`px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 border transition ${
+                                  isSelected
+                                    ? 'bg-roseGold-100 border-roseGold-400 text-roseGold-700 font-bold shadow-xs'
+                                    : 'bg-white border-sand-200 text-sand-600 hover:bg-cream-100'
+                                }`}
+                              >
+                                <span className="text-sm">{opt.emoji}</span>
+                                <span className="text-[11px]">{opt.id}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -500,6 +529,30 @@ export default function WorkoutsListView({ workouts, onStartWorkout, onAddWorkou
                   onChange={(e) => setNovoFoco(e.target.value)}
                   className="w-full mt-1 px-3 py-2 rounded-xl bg-white border border-sand-200 text-xs text-sand-500 focus:outline-none focus:border-roseGold-400"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-sand-400 uppercase block mb-1">Ícone do Músculo em Foco</label>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {MUSCLE_OPTIONS.map((opt) => {
+                    const isSelected = (novoMuscleIcon || '🏋️‍♀️') === opt.emoji;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setNovoMuscleIcon(opt.emoji)}
+                        className={`px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 border transition ${
+                          isSelected
+                            ? 'bg-roseGold-100 border-roseGold-400 text-roseGold-700 font-bold shadow-xs'
+                            : 'bg-white border-sand-200 text-sand-600 hover:bg-cream-100'
+                        }`}
+                      >
+                        <span className="text-sm">{opt.emoji}</span>
+                        <span className="text-[11px]">{opt.id}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="pt-2 border-t border-sand-200 space-y-2">
