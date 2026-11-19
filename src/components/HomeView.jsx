@@ -187,6 +187,10 @@ export default function HomeView({
     const isWeekEnd = currentDay === 5 || currentDay === 6; // Sexta ou Sábado
     const todayTitles = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || 'Treino';
 
+    const isAllWorkoutsDone =
+      (quads >= 1 && glutes >= 1 && upper >= 1) ||
+      completedThisWeek >= weeklyGoal;
+
     // Rule 1: No lower body yet -> prioritize Quads & Legs
     if (quads === 0 && glutes === 0) {
       return {
@@ -269,19 +273,16 @@ export default function HomeView({
       };
     }
 
-    // Rule 5: Covered all 4 categories (Superiores, Glúteos, Quads e Alta Intensidade)
-    if (quads >= 1 && glutes >= 1 && upper >= 1 && fullCore >= 1) {
+    // Rule 5: All main categories covered or weekly target reached
+    if (isAllWorkoutsDone || (quads >= 1 && glutes >= 1 && upper >= 1 && fullCore >= 1)) {
       return {
         focusArea: 'mobility',
-        targetLabel: hasTrainedToday
-          ? 'Recuperação & Descanso (Meta Semanal Cumprida! 🎉)'
-          : 'Recuperação Ativa & Mobilidade (Meta Atingida! 🎉)',
+        targetLabel: 'Meta Semanal 100% Concluída! 🏆',
         motivo: hasTrainedToday
-          ? `Treino de hoje concluído com sucesso (${todayTitles})! 🎉 Já cobriste os grandes grupos musculares todos esta semana. O teu trabalho muscular por hoje está mais do que cumprido — o foco agora é descanso merecido, hidratação e boa alimentação proteica. Se ainda quiseres relaxar o corpo mais tarde, podes fazer uma sessão suave de alongamento/mobilidade (opcional).`
-          : isWeekEnd
-          ? 'Meta semanal concluída com chave de ouro! Cobriste o corpo todo a 100%. A sugestão agora é descanso merecido ou uma sessão relaxante de mobilidade e alongamento.'
-          : 'Excelente progresso! Já cobriste os grandes grupos musculares. A sugestão para hoje é manter a recuperação ativa com mobilidade ou um treino equilibrado.',
-        gymId: 'treino-2',
+          ? `Meta da semana 100% cumprida (${todayTitles})! 🏆 Parabéns! Já cobriste todos os grupos musculares da semana. Todo o trabalho de hipertrofia por esta semana está concluído com distinção — agora o foco absoluto é descanso merecido, hidratação e sono reparador. Cargas pesadas só na próxima semana!`
+          : 'Meta semanal concluída com chave de ouro! Cobriste o corpo todo a 100%. A sugestão agora é descanso merecido ou uma sessão relaxante de mobilidade e alongamento.',
+        gymId: null,
+        isAllWorkoutsDone: true,
       };
     }
 
@@ -296,7 +297,7 @@ export default function HomeView({
         : 'Excelente ritmo! Já trabalhaste os pilares principais. Podes complementar com um Full Body com halteres, uma sessão dinâmica de Core/Pilates ou um segundo foco em Glúteos.',
       gymId: 'treino-2',
     };
-  }, [bodyBalance, hasTrainedToday, todayWorkouts]);
+  }, [bodyBalance, hasTrainedToday, todayWorkouts, completedThisWeek, weeklyGoal]);
 
   // ── Análise Inteligente do Feedback Recente ──────────────────────────────
   const feedbackAnalysis = useMemo(() => {
@@ -934,66 +935,101 @@ export default function HomeView({
             </p>
           </div>
 
-          <div className="bg-white rounded-3xl p-5 shadow-soft border border-sand-100 space-y-3">
-            {hasTrainedToday && (
-              <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div className="flex-1">
-                  <span className="font-bold block">Treino de hoje já registado!</span>
-                  <span className="text-[11px] text-emerald-700">
-                    {todayWorkouts.map((w) => w.treinoTitulo).join(', ')} • {todayWorkouts[0]?.duracaoMinutos || 30} min
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                hasTrainedToday
-                  ? 'bg-cream-200 text-sand-500'
-                  : 'bg-roseGold-100 text-roseGold-600'
-              }`}>
-                {hasTrainedToday
-                  ? `Próxima Sessão (Amanhã) • ${recommendedGymWorkout.tag}`
-                  : `Recomendado • ${recommendedGymWorkout.tag}`}
-              </span>
-              <span className="text-xs text-sand-400 flex items-center gap-1">
-                <Clock className="w-3 h-3" /> {recommendedGymWorkout.duracaoEstimada}
-              </span>
-            </div>
-
-            <h3 className="text-base font-bold text-sand-500">
-              {recommendedGymWorkout.titulo}
-            </h3>
-
-            <p className="text-xs text-sand-400">
-              {recommendedGymWorkout.foco}. Todas as tuas cargas progressivas guardadas.
-            </p>
-
-            <div className="pt-1 flex flex-wrap gap-1.5 text-xs text-sand-400">
-              {recommendedGymWorkout.exercicios.slice(0, 3).map((ex, i) => (
-                <span key={i} className="bg-cream-100 px-2 py-0.5 rounded-lg">
-                  {ex.nome.split(' (')[0]}
+          {activeStrategy.isAllWorkoutsDone ? (
+            <div className="bg-white rounded-3xl p-5 shadow-soft border border-sand-100 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700">
+                  🏆 Meta Semanal Concluída
                 </span>
-              ))}
-            </div>
+                <span className="text-xs text-sand-400 font-semibold font-mono">
+                  {completedThisWeek}/{weeklyGoal} Treinos
+                </span>
+              </div>
 
-            <div className="pt-2">
-              <button
-                onClick={() => onStartWorkout(recommendedGymWorkout)}
-                className={`w-full py-3 rounded-2xl text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-2 active:scale-95 ${
-                  hasTrainedToday
-                    ? 'bg-sand-500 hover:bg-sand-600 shadow-sand-200'
-                    : 'bg-roseGold-400 hover:bg-roseGold-500 shadow-roseGold-200'
-                }`}
-              >
-                <Play className="w-4 h-4 fill-current" />
-                {hasTrainedToday
-                  ? `Ver Rotina da Próxima Sessão (${recommendedGymWorkout.tag})`
-                  : `Iniciar ${recommendedGymWorkout.tag} no Ginásio`}
-              </button>
+              <h3 className="text-base font-bold text-sand-500">
+                Rotinas de Força da Semana Concluídas 🎉
+              </h3>
+
+              <p className="text-xs text-sand-400 leading-relaxed">
+                Já cobriste todos os grupos musculares da semana (Quadríceps, Glúteos & Posterior, Superiores e Core). O corpo precisa agora de repouso para consolidar a hipertrofia até ao início da próxima semana!
+              </p>
+
+              <div className="p-3 rounded-2xl bg-cream-50 border border-sand-200 text-xs text-sand-500 space-y-1">
+                <span className="font-bold text-roseGold-600 block">💡 Sugestão para o Ginásio:</span>
+                <span>Descanso merecido até ao próximo ciclo! Se quiseres ir ao ginásio hoje ou no fim de semana, faz apenas caminhada inclinada na passadeira, 15 min de mobilidade/alongamento suave ou sauna. Cargas pesadas só na próxima semana.</span>
+              </div>
+
+              <div className="pt-1">
+                <button
+                  onClick={() => setTab('workouts')}
+                  className="w-full py-3 rounded-2xl bg-cream-200 hover:bg-cream-300 text-sand-600 text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 active:scale-95"
+                >
+                  Ver Todas as Rotinas / Próxima Semana <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-5 shadow-soft border border-sand-100 space-y-3">
+              {hasTrainedToday && (
+                <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="flex-1">
+                    <span className="font-bold block">Treino de hoje já registado!</span>
+                    <span className="text-[11px] text-emerald-700">
+                      {todayWorkouts.map((w) => w.treinoTitulo).join(', ')} • {todayWorkouts[0]?.duracaoMinutos || 30} min
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                  hasTrainedToday
+                    ? 'bg-cream-200 text-sand-500'
+                    : 'bg-roseGold-100 text-roseGold-600'
+                }`}>
+                  {hasTrainedToday
+                    ? `Próxima Sessão (Amanhã) • ${recommendedGymWorkout.tag}`
+                    : `Recomendado • ${recommendedGymWorkout.tag}`}
+                </span>
+                <span className="text-xs text-sand-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {recommendedGymWorkout.duracaoEstimada}
+                </span>
+              </div>
+
+              <h3 className="text-base font-bold text-sand-500">
+                {recommendedGymWorkout.titulo}
+              </h3>
+
+              <p className="text-xs text-sand-400">
+                {recommendedGymWorkout.foco}. Todas as tuas cargas progressivas guardadas.
+              </p>
+
+              <div className="pt-1 flex flex-wrap gap-1.5 text-xs text-sand-400">
+                {recommendedGymWorkout.exercicios.slice(0, 3).map((ex, i) => (
+                  <span key={i} className="bg-cream-100 px-2 py-0.5 rounded-lg">
+                    {ex.nome.split(' (')[0]}
+                  </span>
+                ))}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => onStartWorkout(recommendedGymWorkout)}
+                  className={`w-full py-3 rounded-2xl text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-2 active:scale-95 ${
+                    hasTrainedToday
+                      ? 'bg-sand-500 hover:bg-sand-600 shadow-sand-200'
+                      : 'bg-roseGold-400 hover:bg-roseGold-500 shadow-roseGold-200'
+                  }`}
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  {hasTrainedToday
+                    ? `Ver Rotina da Próxima Sessão (${recommendedGymWorkout.tag})`
+                    : `Iniciar ${recommendedGymWorkout.tag} no Ginásio`}
+                </button>
+              </div>
+            </div>
+          )}
 
           <button
             onClick={() => setTab('workouts')}

@@ -199,6 +199,21 @@ export function getFeedbackAdaptedStrategy(
     const todayTitles = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || treinoTitulo;
     const feedbackQuote = rawFeedback ? ` ("${rawFeedback}")` : tags.length > 0 ? ` (${tags[0]})` : '';
 
+    // Se toda a meta semanal de treinos já foi cumprida, não sugerir treino de força para o dia seguinte
+    if (baseStrategy.isAllWorkoutsDone) {
+      return {
+        ...baseStrategy,
+        gymId: null,
+        motivo: `Meta da semana 100% cumprida (${todayTitles})! 🏆 Parabéns! Já realizaste todos os grupos musculares da semana. Todo o estímulo de hipertrofia por esta semana está concluído com distinção — agora a prioridade máxima é descanso merecido, hidratação e sono reparador até à próxima semana!`,
+        feedbackNotice: {
+          tipo: 'success',
+          titulo: 'Meta Semanal Atingida! 🏆',
+          texto: 'Todos os grupos musculares trabalhados com sucesso. Descanso merecido!',
+        },
+        adaptationType: 'today_completed_goal_achieved',
+      };
+    }
+
     if (hasPainOrDiscomfort) {
       return {
         ...baseStrategy,
