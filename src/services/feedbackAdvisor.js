@@ -148,13 +148,33 @@ export function formatHistoryForAi(history = [], maxEntries = 5) {
 }
 
 /**
- * Adapta a estratégia de recomendação diária com base no feedback da última sessão.
+ * Adapta a estratégia de recomendação diária com base no feedback da última sessão e no estado do dia.
  * @param {Object} baseStrategy - Estratégia calculada pelo equilíbrio semanal
  * @param {Object|null} feedbackAnalysis - Análise do feedback
+ * @param {boolean} hasTrainedToday - Se o utilizador já concluiu um treino hoje
+ * @param {Array} todayWorkouts - Treinos realizados hoje
  * @returns {Object} Estratégia enriquecida e adaptada
  */
-export function getFeedbackAdaptedStrategy(baseStrategy, feedbackAnalysis) {
+export function getFeedbackAdaptedStrategy(
+  baseStrategy,
+  feedbackAnalysis,
+  hasTrainedToday = false,
+  todayWorkouts = []
+) {
   if (!feedbackAnalysis) {
+    if (hasTrainedToday) {
+      const todayTitle = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || 'Treino';
+      return {
+        ...baseStrategy,
+        motivo: `Treino de hoje já registado com sucesso (${todayTitle})! 🎉 O teu estímulo diário está garantido. Para hoje, a prioridade é o descanso muscular e hidratação. A recomendação abaixo é a previsão para a tua próxima sessão (amanhã): ${baseStrategy.targetLabel}.`,
+        feedbackNotice: {
+          tipo: 'success',
+          titulo: 'Treino de hoje concluído ✓',
+          texto: 'Foco em descanso e boa nutrição até amanhã.',
+        },
+        adaptationType: 'today_completed',
+      };
+    }
     return {
       ...baseStrategy,
       feedbackNotice: null,
@@ -173,6 +193,67 @@ export function getFeedbackAdaptedStrategy(baseStrategy, feedbackAnalysis) {
     isHighEnergy,
     isTooLight,
   } = feedbackAnalysis;
+
+  // Se o utilizador JÁ TREINOU HOJE, o texto nunca deve dizer "para hoje é treinar X"
+  if (hasTrainedToday) {
+    const todayTitles = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || treinoTitulo;
+    const feedbackQuote = rawFeedback ? ` ("${rawFeedback}")` : tags.length > 0 ? ` (${tags[0]})` : '';
+
+    if (hasPainOrDiscomfort) {
+      return {
+        ...baseStrategy,
+        focusArea: isLowerBody ? 'upper' : 'mobility',
+        targetLabel: isLowerBody ? 'Superiores & Tronco (Amanhã)' : 'Mobilidade Suave (Amanhã)',
+        motivo: `Treino de hoje concluído! 🎉 Como em ${todayTitles} registaste desconforto articular${feedbackQuote}, agora o segredo é repouso e hidratação para recuperar. Para a tua próxima sessão (amanhã), a recomendação adapta-se para proteger as tuas articulações com foco em ${baseStrategy.targetLabel}.`,
+        feedbackNotice: {
+          tipo: 'warning',
+          titulo: 'Treino de hoje feito • Proteção articular',
+          texto: `Repouso hoje após desconforto em ${todayTitles}.`,
+        },
+        adaptationType: 'today_completed_pain',
+      };
+    }
+
+    if (isFatigueOrHeavy) {
+      return {
+        ...baseStrategy,
+        motivo: `Excelente esforço! O teu treino de hoje (${todayTitles}) já está concluído. Como sentiste grande exigência física${feedbackQuote}, o foco para o resto do dia é descansar, nutrir e dormir bem. Para a tua próxima sessão (amanhã), a recomendação do plano será ${baseStrategy.targetLabel}.`,
+        feedbackNotice: {
+          tipo: 'info',
+          titulo: 'Treino de hoje feito • Recuperação',
+          texto: `Recuperação prioritária após esforço elevado em ${todayTitles}.`,
+        },
+        adaptationType: 'today_completed_fatigue',
+      };
+    }
+
+    if (isHighEnergy) {
+      const starsStr = '★'.repeat(rating);
+      return {
+        ...baseStrategy,
+        motivo: `Treino de hoje concluído com nota máxima! 🎉 Fantástica energia em ${todayTitles} (${starsStr}${feedbackQuote}). O teu trabalho muscular por hoje está feito! Para a tua próxima sessão (amanhã), continuaremos esse excelente ritmo com foco em ${baseStrategy.targetLabel}.`,
+        feedbackNotice: {
+          tipo: 'success',
+          titulo: 'Treino de hoje concluído ✓',
+          texto: `Excelente consistência em ${todayTitles}.`,
+        },
+        adaptationType: 'today_completed_energy',
+      };
+    }
+
+    return {
+      ...baseStrategy,
+      motivo: `Treino de hoje já registado com sucesso (${todayTitles})! 🎉 O teu trabalho muscular por hoje está cumprido. Para o resto do dia, a prioridade é descansar, hidratar e alimentar as tuas fibras musculares. Para a tua próxima sessão (amanhã), o foco será ${baseStrategy.targetLabel}.`,
+      feedbackNotice: {
+        tipo: 'success',
+        titulo: 'Treino de hoje concluído ✓',
+        texto: 'Foco em descanso e boa nutrição até à próxima sessão.',
+      },
+      adaptationType: 'today_completed',
+    };
+  }
+
+  // ── CASOS PARA QUANDO O UTILIZADOR AINDA NÃO TREINOU HOJE ─────────────────
 
   // 1. Caso de Dor Articular ou Desconforto (ex: joelhos, lombar, ombros)
   if (hasPainOrDiscomfort) {

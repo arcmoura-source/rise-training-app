@@ -24,6 +24,18 @@ export const generateAiAdvice = async (
   const historicoRecenteDesc = formatHistoryForAi(history, 5);
   const feedbackAnalysis = analyzeRecentFeedback(history);
 
+  const now = new Date();
+  const todayWorkouts = (history || []).filter((h) => {
+    if (!h.data && !h.date) return false;
+    const hd = new Date(h.data || h.date);
+    return (
+      hd.getDate() === now.getDate() &&
+      hd.getMonth() === now.getMonth() &&
+      hd.getFullYear() === now.getFullYear()
+    );
+  });
+  const jaTreinouHoje = todayWorkouts.length > 0;
+
   // ── 1. CHAMADA À GOOGLE GEMINI API (Cascata de Modelos com Memória Multi-Turn) ─
   const apiKey =
     localStorage.getItem('gemini_api_key') ||
@@ -93,6 +105,9 @@ ${treinosDesc}
 
 Histórico recente de treinos & Feedback real registado pela ${nome}:
 ${historicoRecenteDesc}
+
+Estado de Hoje:
+${jaTreinouHoje ? `A ${nome} JÁ REALIZOU TREINO HOJE (${todayWorkouts.map(w => w.treinoTitulo).join(', ')}). REGRA OBRIGATÓRIA: NUNCA lhe digas para ir treinar musculação ou fazer outro treino pesado hoje! Aconselha descanso merecido, hidratação e boa alimentação proteica. Se ela perguntar o que treinar, lembra-a com carinho que por hoje o treino está feito e que a recomendação seguinte é para a sessão de amanhã.` : `A ${nome} ainda não realizou treino hoje.`}
 
 Regras obrigatórias de resposta:
 1. Responde SEMPRE em Português de Portugal natural (PT-PT: usa "estás", "treinares", "pequeno-almoço", "ecrã", "banco", "peitoral", etc.).
@@ -351,6 +366,15 @@ Regras obrigatórias de resposta:
         p.includes('recomenda') ||
         p.includes('sugestão de treino'),
       content: (() => {
+        if (jaTreinouHoje) {
+          const titulosHoje = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || 'Treino';
+          return `Já fizeste o teu treino de hoje (**${titulosHoje}**)! 🎉
+• O teu estímulo muscular diário já está 100% cumprido.
+• Por hoje, não deves fazer mais nenhum treino de musculação ou alta intensidade — o foco agora é **descanso, hidratação e boa alimentação proteica**, porque é durante o repouso e sono que as fibras musculares recuperam e a hipertrofia acontece!
+• Se ainda quiseres relaxar o corpo mais tarde, podes fazer apenas uma sessão suave de alongamento/mobilidade (opcional).
+• Para a tua próxima sessão (amanhã), confere a previsão no ecrã **Início**!`;
+        }
+
         if (!feedbackAnalysis) {
           return `Com base no teu objetivo de **${objetivo}**, a recomendação de hoje foca-se em manter o equilíbrio corporal da semana! Podes verificar a sugestão personalizada no separador **Início** adaptada aos teus treinos concluídos.`;
         }

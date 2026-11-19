@@ -125,6 +125,13 @@ export default function HomeView({
     );
   }, [selectedDate]);
 
+  // Workouts completed TODAY
+  const todayWorkouts = useMemo(() => {
+    return weekDays.find((d) => d.isToday)?.workouts || [];
+  }, [weekDays]);
+
+  const hasTrainedToday = todayWorkouts.length > 0;
+
   // All workouts completed this week
   const thisWeekWorkouts = useMemo(() => {
     return weekDays.flatMap((d) => d.workouts);
@@ -178,13 +185,16 @@ export default function HomeView({
     const currentDay = now.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
     const isWeekStart = currentDay === 0 || currentDay === 1; // Domingo ou Segunda
     const isWeekEnd = currentDay === 5 || currentDay === 6; // Sexta ou Sábado
+    const todayTitles = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || 'Treino';
 
     // Rule 1: No lower body yet -> prioritize Quads & Legs
     if (quads === 0 && glutes === 0) {
       return {
         focusArea: 'quads',
-        targetLabel: 'Quadríceps & Pernas',
-        motivo: isWeekStart
+        targetLabel: hasTrainedToday ? 'Próxima Sessão: Quadríceps & Pernas' : 'Quadríceps & Pernas',
+        motivo: hasTrainedToday
+          ? `Treino de hoje já registado (${todayTitles})! 🎉 O teu estímulo diário está concluído. Para a tua próxima sessão (amanhã), a recomendação do plano será Quadríceps & Pernas.`
+          : isWeekStart
           ? 'Nova semana, novo foco! Começa a semana em grande com o teu estímulo principal em Quadríceps & Pernas.'
           : 'Estímulo prioritário da semana nas pernas e grandes grupos musculares com foco em hipertrofia.',
         gymId: 'treino-1',
@@ -195,18 +205,22 @@ export default function HomeView({
     if (quads > 0 && glutes === 0) {
       return {
         focusArea: 'glutes',
-        targetLabel: 'Glúteos & Posterior',
-        motivo: 'Já deste estímulo em Quadríceps esta semana! O foco ideal agora é Glúteos & Posterior (Hip Thrust, RDL e Back Extension) para descansares os quadríceps.',
+        targetLabel: hasTrainedToday ? 'Próxima Sessão: Glúteos & Posterior' : 'Glúteos & Posterior',
+        motivo: hasTrainedToday
+          ? `Treino de hoje já registado com sucesso! 🎉 Para a tua próxima sessão (amanhã), o foco ideal será Glúteos & Posterior (Hip Thrust, RDL e Back Extension) para descansares os quadríceps.`
+          : 'Já deste estímulo em Quadríceps esta semana! O foco ideal agora é Glúteos & Posterior (Hip Thrust, RDL e Back Extension) para descansares os quadríceps.',
         gymId: 'treino-2',
       };
     }
 
-    // Rule 2B: Done glutes first (ex: Pilates de Glúteos da Olivia Lawson ou Treino 2), but quads pending -> prioritize Quadríceps & Pernas
+    // Rule 2B: Done glutes first, but quads pending -> prioritize Quadríceps & Pernas
     if (glutes > 0 && quads === 0) {
       return {
         focusArea: 'quads',
-        targetLabel: 'Quadríceps & Pernas',
-        motivo: 'Já deste um excelente estímulo em Glúteos & Core esta semana! O foco ideal agora é Quadríceps & Pernas (Leg Press, agachamento e pernas) para descansares a cadeia posterior e equilibrares os membros inferiores.',
+        targetLabel: hasTrainedToday ? 'Próxima Sessão: Quadríceps & Pernas' : 'Quadríceps & Pernas',
+        motivo: hasTrainedToday
+          ? `Treino de hoje já registado com sucesso! 🎉 Para a tua próxima sessão (amanhã), o foco ideal será Quadríceps & Pernas (Leg Press e agachamento) para descansares a cadeia posterior.`
+          : 'Já deste um excelente estímulo em Glúteos & Core esta semana! O foco ideal agora é Quadríceps & Pernas (Leg Press, agachamento e pernas) para descansares a cadeia posterior e equilibrares os membros inferiores.',
         gymId: 'treino-1',
       };
     }
@@ -215,8 +229,10 @@ export default function HomeView({
     if (quads > 0 && glutes > 0 && upper === 0) {
       return {
         focusArea: 'upper',
-        targetLabel: 'Superiores (Costas, Ombros & Braços)',
-        motivo: 'Excelente! Pernas e glúteos já foram trabalhados. Para equilibrar o corpo todo e evitar sobrecarga nos membros inferiores, o foco de hoje é na parte superior.',
+        targetLabel: hasTrainedToday ? 'Próxima Sessão: Superiores & Tronco' : 'Superiores (Costas, Ombros & Braços)',
+        motivo: hasTrainedToday
+          ? `Treino de hoje concluído com sucesso! 🎉 Pernas e glúteos já foram trabalhados. Para a tua próxima sessão (amanhã), o foco será na parte superior (Costas, Ombros & Braços).`
+          : 'Excelente! Pernas e glúteos já foram trabalhados. Para equilibrar o corpo todo e evitar sobrecarga nos membros inferiores, o foco de hoje é na parte superior.',
         gymId: 'treino-3',
       };
     }
@@ -225,24 +241,30 @@ export default function HomeView({
     if (upper > 0 && glutes > 0 && quads === 0) {
       return {
         focusArea: 'quads',
-        targetLabel: 'Quadríceps & Pernas',
-        motivo: 'Já treinaste Superiores e Glúteos! Para equilibrares o corpo todo e manteres o plano em dia, o treino recomendado para hoje é Quadríceps & Pernas.',
+        targetLabel: hasTrainedToday ? 'Próxima Sessão: Quadríceps & Pernas' : 'Quadríceps & Pernas',
+        motivo: hasTrainedToday
+          ? `Treino de hoje concluído com sucesso! 🎉 Para a tua próxima sessão (amanhã), o foco recomendado será Quadríceps & Pernas.`
+          : 'Já treinaste Superiores e Glúteos! Para equilibrares o corpo todo e manteres o plano em dia, o treino recomendado para hoje é Quadríceps & Pernas.',
         gymId: 'treino-1',
       };
     }
     if (upper > 0 && glutes === 0) {
       return {
         focusArea: 'glutes',
-        targetLabel: 'Glúteos & Posterior',
-        motivo: 'Superiores já foram trabalhados. O foco ideal agora para os teus objetivos é a cadeia posterior e glúteos.',
+        targetLabel: hasTrainedToday ? 'Próxima Sessão: Glúteos & Posterior' : 'Glúteos & Posterior',
+        motivo: hasTrainedToday
+          ? `Treino de hoje concluído com sucesso! 🎉 Para a tua próxima sessão (amanhã), o foco ideal para os teus objetivos será a cadeia posterior e glúteos.`
+          : 'Superiores já foram trabalhados. O foco ideal agora para os teus objetivos é a cadeia posterior e glúteos.',
         gymId: 'treino-2',
       };
     }
     if (upper > 0 && quads === 0) {
       return {
         focusArea: 'quads',
-        targetLabel: 'Quadríceps & Pernas',
-        motivo: 'Equilíbrio da semana: ativação potente de quadríceps com Leg Press e agachamento.',
+        targetLabel: hasTrainedToday ? 'Próxima Sessão: Quadríceps & Pernas' : 'Quadríceps & Pernas',
+        motivo: hasTrainedToday
+          ? `Treino de hoje concluído com sucesso! 🎉 Para a tua próxima sessão (amanhã), o estímulo será em Quadríceps & Pernas com Leg Press e agachamento.`
+          : 'Equilíbrio da semana: ativação potente de quadríceps com Leg Press e agachamento.',
         gymId: 'treino-1',
       };
     }
@@ -251,8 +273,12 @@ export default function HomeView({
     if (quads >= 1 && glutes >= 1 && upper >= 1 && fullCore >= 1) {
       return {
         focusArea: 'mobility',
-        targetLabel: 'Recuperação Ativa & Mobilidade (Meta Atingida! 🎉)',
-        motivo: isWeekEnd
+        targetLabel: hasTrainedToday
+          ? 'Recuperação & Descanso (Meta Semanal Cumprida! 🎉)'
+          : 'Recuperação Ativa & Mobilidade (Meta Atingida! 🎉)',
+        motivo: hasTrainedToday
+          ? `Treino de hoje concluído com sucesso (${todayTitles})! 🎉 Já cobriste os grandes grupos musculares todos esta semana. O teu trabalho muscular por hoje está mais do que cumprido — o foco agora é descanso merecido, hidratação e boa alimentação proteica. Se ainda quiseres relaxar o corpo mais tarde, podes fazer uma sessão suave de alongamento/mobilidade (opcional).`
+          : isWeekEnd
           ? 'Meta semanal concluída com chave de ouro! Cobriste o corpo todo a 100%. A sugestão agora é descanso merecido ou uma sessão relaxante de mobilidade e alongamento.'
           : 'Excelente progresso! Já cobriste os grandes grupos musculares. A sugestão para hoje é manter a recuperação ativa com mobilidade ou um treino equilibrado.',
         gymId: 'treino-2',
@@ -262,23 +288,30 @@ export default function HomeView({
     // Rule 6: Covered the 3 main splits
     return {
       focusArea: 'fullbody',
-      targetLabel: 'Full Body & Core (ou 2º Foco em Glúteos)',
-      motivo: isWeekEnd
+      targetLabel: hasTrainedToday ? 'Próxima Sessão: Full Body & Core' : 'Full Body & Core (ou 2º Foco em Glúteos)',
+      motivo: hasTrainedToday
+        ? `Treino de hoje concluído com sucesso! 🎉 Já cobriste os pilares principais da semana. Para o resto do dia de hoje, a prioridade é o descanso e boa nutrição. Para a tua próxima sessão (amanhã), a sugestão será um Full Body ou um segundo foco em Glúteos.`
+        : isWeekEnd
         ? 'Incrível! Já cobriste os pilares da semana. O treino ideal para fechar a semana é um Full Body com halteres ou Core/Pilates — ou um segundo estímulo focado em Glúteos!'
         : 'Excelente ritmo! Já trabalhaste os pilares principais. Podes complementar com um Full Body com halteres, uma sessão dinâmica de Core/Pilates ou um segundo foco em Glúteos.',
       gymId: 'treino-2',
     };
-  }, [bodyBalance]);
+  }, [bodyBalance, hasTrainedToday, todayWorkouts]);
 
   // ── Análise Inteligente do Feedback Recente ──────────────────────────────
   const feedbackAnalysis = useMemo(() => {
     return analyzeRecentFeedback(history);
   }, [history]);
 
-  // ── Estratégia Adaptada (Equilíbrio Semanal + Impacto do Feedback) ──────
+  // ── Estratégia Adaptada (Equilíbrio Semanal + Impacto do Feedback + Treino de Hoje) ──────
   const activeStrategy = useMemo(() => {
-    return getFeedbackAdaptedStrategy(recommendationStrategy, feedbackAnalysis);
-  }, [recommendationStrategy, feedbackAnalysis]);
+    return getFeedbackAdaptedStrategy(
+      recommendationStrategy,
+      feedbackAnalysis,
+      hasTrainedToday,
+      todayWorkouts
+    );
+  }, [recommendationStrategy, feedbackAnalysis, hasTrainedToday, todayWorkouts]);
 
   // ── Recommended Gym Workout ───────────────────────────────────────────────
   const recommendedGymWorkout = useMemo(() => {
@@ -360,6 +393,11 @@ export default function HomeView({
 
   // ── Dica Dinâmica do AI Coach (Adaptada ao Vídeo Sugerido, Pesos e Feedback) ───
   const currentAiTip = useMemo(() => {
+    if (hasTrainedToday) {
+      const todayNames = todayWorkouts.map((w) => w.treinoTitulo).join(', ') || 'Treino';
+      return `Missão cumprida por hoje com ${todayNames}! 🎉 O teu estímulo muscular já está garantido. Para hoje, o segredo é beber água, alimentar bem os músculos com boa proteína e dormir 7 a 8 horas. É no descanso que a hipertrofia realmente acontece!`;
+    }
+
     // Prefixo dinâmico se houver feedback recente
     let feedbackPrefix = '';
     if (feedbackAnalysis && (feedbackAnalysis.rawFeedback || feedbackAnalysis.tags.length > 0)) {
@@ -456,7 +494,7 @@ export default function HomeView({
     }
 
     return feedbackPrefix + 'No ginásio, a consistência de cargas e o registo de cada série fazem toda a magia. Mantém a técnica impecável e desafia-te!';
-  }, [workoutMode, recommendedHomeVideo, recommendedGymWorkout, feedbackAnalysis]);
+  }, [workoutMode, recommendedHomeVideo, recommendedGymWorkout, feedbackAnalysis, hasTrainedToday, todayWorkouts]);
 
   return (
     <div className="space-y-5 pb-24">
@@ -478,7 +516,11 @@ export default function HomeView({
               Olá, {profile.nome} ✨
             </h1>
             <p className="text-xs text-sand-400">
-              {isTodaySelected ? 'O teu plano personalizado para hoje' : 'A rever plano da semana'}
+              {hasTrainedToday && isTodaySelected
+                ? 'Treino de hoje já concluído! 🎉 Foco em descanso e boa recuperação'
+                : isTodaySelected
+                ? 'O teu plano personalizado para hoje'
+                : 'A rever plano da semana'}
             </p>
           </div>
         </div>
@@ -776,14 +818,24 @@ export default function HomeView({
           <div className="bg-gradient-to-r from-roseGold-50 to-cream-100 rounded-3xl p-4 border border-roseGold-200/80 shadow-soft space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-roseGold-600 font-bold text-xs">
-                <Sparkles className="w-4 h-4" />
-                <span>Recomendação do Coach AI</span>
+                {hasTrainedToday ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                <span>
+                  {hasTrainedToday ? 'Treino de Hoje Concluído 🎉' : 'Recomendação do Coach AI'}
+                </span>
               </div>
-              {activeStrategy.feedbackNotice && (
+              {hasTrainedToday ? (
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-2xs">
+                  ✓ Missão Cumprida
+                </span>
+              ) : activeStrategy.feedbackNotice ? (
                 <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-roseGold-100 text-roseGold-700 border border-roseGold-200 shadow-2xs">
                   ✨ Adaptado ao Feedback
                 </span>
-              )}
+              ) : null}
             </div>
             <p className="text-xs text-sand-500 leading-relaxed">
               {activeStrategy.motivo}
@@ -809,7 +861,9 @@ export default function HomeView({
                 </div>
 
                 <div className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-white/95 text-roseGold-600 text-xs font-bold">
-                  {recommendedHomeVideo.canal} • {recommendedHomeVideo.nivel}
+                  {hasTrainedToday
+                    ? 'Relaxamento / Alongamento Pós-Treino'
+                    : `${recommendedHomeVideo.canal} • ${recommendedHomeVideo.nivel}`}
                 </div>
 
                 <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-sand-600/80 text-white text-xs font-mono font-bold flex items-center gap-1">
@@ -842,7 +896,7 @@ export default function HomeView({
                     className="w-full py-2.5 rounded-2xl bg-roseGold-400 hover:bg-roseGold-500 text-white text-xs font-bold transition shadow-md shadow-roseGold-200 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
-                    Abrir Aula & Começar Treino
+                    {hasTrainedToday ? 'Ver Alongamento & Relaxamento (Opcional)' : 'Abrir Aula & Começar Treino'}
                   </button>
                 </div>
               </div>
@@ -856,14 +910,24 @@ export default function HomeView({
           <div className="bg-gradient-to-r from-roseGold-50 to-cream-100 rounded-3xl p-4 border border-roseGold-200/80 shadow-soft space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-roseGold-600 font-bold text-xs">
-                <Sparkles className="w-4 h-4" />
-                <span>Recomendação do Coach AI</span>
+                {hasTrainedToday ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                <span>
+                  {hasTrainedToday ? 'Treino de Hoje Concluído 🎉' : 'Recomendação do Coach AI'}
+                </span>
               </div>
-              {activeStrategy.feedbackNotice && (
+              {hasTrainedToday ? (
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-2xs">
+                  ✓ Missão Cumprida
+                </span>
+              ) : activeStrategy.feedbackNotice ? (
                 <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-roseGold-100 text-roseGold-700 border border-roseGold-200 shadow-2xs">
                   ✨ Adaptado ao Feedback
                 </span>
-              )}
+              ) : null}
             </div>
             <p className="text-xs text-sand-500 leading-relaxed">
               {activeStrategy.motivo}
@@ -871,9 +935,27 @@ export default function HomeView({
           </div>
 
           <div className="bg-white rounded-3xl p-5 shadow-soft border border-sand-100 space-y-3">
+            {hasTrainedToday && (
+              <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="flex-1">
+                  <span className="font-bold block">Treino de hoje já registado!</span>
+                  <span className="text-[11px] text-emerald-700">
+                    {todayWorkouts.map((w) => w.treinoTitulo).join(', ')} • {todayWorkouts[0]?.duracaoMinutos || 30} min
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
-              <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-roseGold-100 text-roseGold-600 uppercase tracking-wide">
-                Recomendado • {recommendedGymWorkout.tag}
+              <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                hasTrainedToday
+                  ? 'bg-cream-200 text-sand-500'
+                  : 'bg-roseGold-100 text-roseGold-600'
+              }`}>
+                {hasTrainedToday
+                  ? `Próxima Sessão (Amanhã) • ${recommendedGymWorkout.tag}`
+                  : `Recomendado • ${recommendedGymWorkout.tag}`}
               </span>
               <span className="text-xs text-sand-400 flex items-center gap-1">
                 <Clock className="w-3 h-3" /> {recommendedGymWorkout.duracaoEstimada}
@@ -899,10 +981,16 @@ export default function HomeView({
             <div className="pt-2">
               <button
                 onClick={() => onStartWorkout(recommendedGymWorkout)}
-                className="w-full py-3 rounded-2xl bg-roseGold-400 hover:bg-roseGold-500 text-white text-xs font-bold transition shadow-md shadow-roseGold-200 flex items-center justify-center gap-2 active:scale-95"
+                className={`w-full py-3 rounded-2xl text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-2 active:scale-95 ${
+                  hasTrainedToday
+                    ? 'bg-sand-500 hover:bg-sand-600 shadow-sand-200'
+                    : 'bg-roseGold-400 hover:bg-roseGold-500 shadow-roseGold-200'
+                }`}
               >
                 <Play className="w-4 h-4 fill-current" />
-                Iniciar {recommendedGymWorkout.tag} no Ginásio
+                {hasTrainedToday
+                  ? `Ver Rotina da Próxima Sessão (${recommendedGymWorkout.tag})`
+                  : `Iniciar ${recommendedGymWorkout.tag} no Ginásio`}
               </button>
             </div>
           </div>
