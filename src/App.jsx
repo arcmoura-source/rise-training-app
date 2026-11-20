@@ -80,6 +80,22 @@ export default function App() {
     }
   }, []);
 
+  // Sincronizar estado React quando novos dados são restaurados ou sincronizados da nuvem
+  useEffect(() => {
+    const handleDataSynchronized = () => {
+      setProfiles(getProfilesList());
+      const current = getProfile();
+      setProfileState(current);
+      setWorkoutsState(getWorkouts());
+      if (current?.id) {
+        setHistoryState(getHistory(current.id));
+      }
+    };
+
+    window.addEventListener('fit_data_synchronized', handleDataSynchronized);
+    return () => window.removeEventListener('fit_data_synchronized', handleDataSynchronized);
+  }, []);
+
   // Automatically synchronize history when active profile changes
   useEffect(() => {
     if (profile?.id) {

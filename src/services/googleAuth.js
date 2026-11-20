@@ -7,7 +7,7 @@ export const getGoogleClientId = () => {
   return (
     (import.meta.env ? import.meta.env.VITE_GOOGLE_CLIENT_ID : '') ||
     localStorage.getItem(STORAGE_KEY_CLIENT_ID) ||
-    ''
+    '1013151979499-ei0mjkgl458u9s0hmlm41hb9shdi9sfg.apps.googleusercontent.com'
   );
 };
 
@@ -168,7 +168,9 @@ const BACKUP_FILENAME = 'rise-dados-backup.json';
  */
 export const uploadBackupToGoogleDrive = async (backupData, accessToken) => {
   if (!accessToken) {
-    throw new Error('Sessão Google expirada ou inexistente. Por favor inicia sessão novamente.');
+    const err = new Error('Sessão Google expirada ou inexistente. Por favor inicia sessão novamente.');
+    err.isAuthError = true;
+    throw err;
   }
 
   const fileContent = JSON.stringify(backupData, null, 2);
@@ -181,6 +183,12 @@ export const uploadBackupToGoogleDrive = async (backupData, accessToken) => {
       headers: { Authorization: `Bearer ${accessToken}` },
     }
   );
+
+  if (searchRes.status === 401) {
+    const err = new Error('Sessão Google expirada. Por favor reautentica.');
+    err.isAuthError = true;
+    throw err;
+  }
 
   let existingFile = null;
   if (searchRes.ok) {
@@ -206,7 +214,11 @@ export const uploadBackupToGoogleDrive = async (backupData, accessToken) => {
 
     if (!patchRes.ok) {
       const errJson = await patchRes.json().catch(() => ({}));
-      throw new Error(errJson?.error?.message || 'Falha ao atualizar a cópia no Google Drive.');
+      const err = new Error(errJson?.error?.message || 'Falha ao atualizar a cópia no Google Drive.');
+      if (patchRes.status === 401 || errJson?.error?.status === 'UNAUTHENTICATED') {
+        err.isAuthError = true;
+      }
+      throw err;
     }
 
     const patchResult = await patchRes.json();
@@ -253,7 +265,11 @@ export const uploadBackupToGoogleDrive = async (backupData, accessToken) => {
 
   if (!response.ok) {
     const errorJson = await response.json().catch(() => ({}));
-    throw new Error(errorJson?.error?.message || 'Falha ao guardar o ficheiro no Google Drive.');
+    const err = new Error(errorJson?.error?.message || 'Falha ao guardar o ficheiro no Google Drive.');
+    if (response.status === 401 || errorJson?.error?.status === 'UNAUTHENTICATED') {
+      err.isAuthError = true;
+    }
+    throw err;
   }
 
   const result = await response.json();
@@ -272,7 +288,9 @@ export const uploadBackupToGoogleDrive = async (backupData, accessToken) => {
  */
 export const downloadLatestBackupFromGoogleDrive = async (accessToken) => {
   if (!accessToken) {
-    throw new Error('Sessão Google expirada ou inexistente.');
+    const err = new Error('Sessão Google expirada ou inexistente.');
+    err.isAuthError = true;
+    throw err;
   }
 
   // 1. Pesquisa primeiro pelo ficheiro fixo 'rise-dados-backup.json' ou compatibilidade com anteriores
@@ -286,7 +304,11 @@ export const downloadLatestBackupFromGoogleDrive = async (accessToken) => {
 
   if (!listRes.ok) {
     const errJson = await listRes.json().catch(() => ({}));
-    throw new Error(errJson?.error?.message || 'Falha ao aceder aos ficheiros do Google Drive.');
+    const err = new Error(errJson?.error?.message || 'Falha ao aceder aos ficheiros do Google Drive.');
+    if (listRes.status === 401 || errJson?.error?.status === 'UNAUTHENTICATED') {
+      err.isAuthError = true;
+    }
+    throw err;
   }
 
   const listData = await listRes.json();
@@ -305,7 +327,12 @@ export const downloadLatestBackupFromGoogleDrive = async (accessToken) => {
   );
 
   if (!downloadRes.ok) {
-    throw new Error('Falha ao transferir o ficheiro de cópia do Google Drive.');
+    const errJson = await downloadRes.json().catch(() => ({}));
+    const err = new Error(errJson?.error?.message || 'Falha ao transferir o ficheiro de cópia do Google Drive.');
+    if (downloadRes.status === 401 || errJson?.error?.status === 'UNAUTHENTICATED') {
+      err.isAuthError = true;
+    }
+    throw err;
   }
 
   const backupData = await downloadRes.json();
@@ -313,6 +340,134 @@ export const downloadLatestBackupFromGoogleDrive = async (accessToken) => {
     found: true,
     file,
     backupData,
+  };
+};
+
+/**
+ * Sincronização Inteligente Bidirecional com o Google Drive:
+ * 1. Descarrega a cópia existente no Drive (se existir).
+ * 2. Faz merge inteligente dos treinos, históricos e perfis locais com os da nuvem,
+ *    garantindo que nenhum treino é apagado ou sobreposto por engano.
+ * 3. Guarda a versão unificada localmente no telemóvel e envia-a de volta para o Drive.
+ */
+export const syncWithGoogleDrive = async (accessToken) => {
+  if (!accessToken) {
+    const err = new Error('Sessão Google expirada ou inexistente.');
+    err.isAuthError = true;
+    throw err;
+  }
+
+  const { exportBackupData, importBackupData } = await import('./storage');
+  const localBackup = exportBackupData();
+
+  // 1. Descarregar dados prévios do Drive
+  let cloudBackup = null;
+  try {
+    const driveRes = await downloadLatestBackupFromGoogleDrive(accessToken);
+    if (driveRes.found && driveRes.backupData) {
+      cloudBackup = driveRes.backupData;
+    }
+  } catch (err) {
+    if (err.isAuthError) throw err;
+    console.warn('[Sync] Não foi possível ler cópia prévia do Drive:', err);
+  }
+
+  let mergedPayload = { ...(localBackup.data || {}) };
+  let newItemsMerged = 0;
+
+  if (cloudBackup) {
+    const cloudPayload = cloudBackup.data && typeof cloudBackup.data === 'object' ? cloudBackup.data : cloudBackup;
+
+    // A) Merge de Histórico (todas as chaves de histórico: fit_history_* e fit_rita_history)
+    const allHistoryKeys = new Set([
+      ...Object.keys(localBackup.data || {}).filter(k => k.startsWith('fit_history_') || k === 'fit_rita_history'),
+      ...Object.keys(cloudPayload || {}).filter(k => k.startsWith('fit_history_') || k === 'fit_rita_history'),
+    ]);
+
+    allHistoryKeys.forEach((key) => {
+      const localList = Array.isArray(localBackup.data?.[key]) ? localBackup.data[key] : [];
+      const cloudList = Array.isArray(cloudPayload?.[key]) ? cloudPayload[key] : [];
+
+      const seen = new Set();
+      const combined = [];
+
+      [...localList, ...cloudList].forEach((item) => {
+        if (!item) return;
+        const dedupeKey = item.id || `${item.data || ''}_${item.treinoTitulo || ''}`;
+        if (!seen.has(dedupeKey)) {
+          seen.add(dedupeKey);
+          combined.push(item);
+        }
+      });
+
+      combined.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+      mergedPayload[key] = combined;
+      if (combined.length > localList.length) {
+        newItemsMerged += (combined.length - localList.length);
+      }
+    });
+
+    // B) Merge de Treinos (fit_rita_workouts)
+    const localWorkouts = Array.isArray(localBackup.data?.['fit_rita_workouts']) ? localBackup.data['fit_rita_workouts'] : [];
+    const cloudWorkouts = Array.isArray(cloudPayload?.['fit_rita_workouts']) ? cloudPayload['fit_rita_workouts'] : [];
+    const workoutMap = new Map();
+
+    cloudWorkouts.forEach((w) => { if (w?.id) workoutMap.set(w.id, w); });
+    localWorkouts.forEach((w) => {
+      if (w?.id) {
+        const existing = workoutMap.get(w.id);
+        if (!existing || (w.exercicios?.length || 0) >= (existing.exercicios?.length || 0)) {
+          workoutMap.set(w.id, w);
+        }
+      }
+    });
+    mergedPayload['fit_rita_workouts'] = Array.from(workoutMap.values());
+
+    // C) Merge de Perfis (fit_rita_all_profiles)
+    const localProfiles = Array.isArray(localBackup.data?.['fit_rita_all_profiles']) ? localBackup.data['fit_rita_all_profiles'] : [];
+    const cloudProfiles = Array.isArray(cloudPayload?.['fit_rita_all_profiles']) ? cloudPayload['fit_rita_all_profiles'] : [];
+    const profileMap = new Map();
+
+    cloudProfiles.forEach((p) => { if (p?.id) profileMap.set(p.id, p); });
+    localProfiles.forEach((p) => {
+      if (p?.id) {
+        profileMap.set(p.id, { ...(profileMap.get(p.id) || {}), ...p });
+      }
+    });
+    mergedPayload['fit_rita_all_profiles'] = Array.from(profileMap.values());
+
+    // D) Importar chaves adicionais da cloud que faltem localmente
+    Object.keys(cloudPayload).forEach((k) => {
+      if (mergedPayload[k] === undefined && (k.startsWith('fit_') || k === 'gemini_api_key')) {
+        mergedPayload[k] = cloudPayload[k];
+      }
+    });
+
+    // Guardar os dados unificados no localStorage
+    importBackupData({ data: mergedPayload });
+  }
+
+  // 3. Fazer upload da versão completa unificada para o Google Drive
+  const finalBackup = {
+    ...localBackup,
+    exportDate: new Date().toISOString(),
+    deviceTime: new Date().toLocaleString('pt-PT'),
+    data: mergedPayload,
+  };
+
+  const uploadResult = await uploadBackupToGoogleDrive(finalBackup, accessToken);
+
+  const timeString = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  localStorage.setItem('fit_last_autosync_time', timeString);
+  window.dispatchEvent(new CustomEvent('fit_autosync_updated', { detail: { time: timeString } }));
+  window.dispatchEvent(new CustomEvent('fit_data_synchronized', { detail: { newItemsMerged } }));
+
+  return {
+    success: true,
+    fileId: uploadResult.fileId,
+    newItemsMerged,
+    timeString,
+    cloudHadData: !!cloudBackup,
   };
 };
 

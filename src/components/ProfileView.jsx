@@ -8,6 +8,8 @@ import {
   getSavedGoogleAccount,
   requestGoogleLogin,
   uploadBackupToGoogleDrive,
+  downloadLatestBackupFromGoogleDrive,
+  syncWithGoogleDrive,
   disconnectGoogleAccount,
   getLastAutoSyncTime,
   triggerAutoSyncToGoogleDrive,
@@ -33,6 +35,9 @@ import {
   CheckCircle2,
   HardDrive,
   Settings,
+  RefreshCw,
+  DownloadCloud,
+  UploadCloud,
 } from 'lucide-react';
 
 
@@ -104,66 +109,136 @@ export default function ProfileView({
           message: 'Configuração do Google Client ID em falta.',
         });
         setIsGoogleConnecting(false);
-        return;
+        return null;
       }
       if (res.success && res.user) {
         setGoogleAccount(res.user);
         setBackupStatus({
           type: 'success',
-          message: `Sessão iniciada como ${res.user.name}! A guardar cópia automática na nuvem...`,
+          message: `Sessão iniciada como ${res.user.name}! A sincronizar dados com o Google Drive...`,
         });
         // Sincronização inicial automática imediata
-        triggerAutoSyncToGoogleDrive(600);
+        handleSyncWithDrive(res.user);
+        return res.user;
       }
+      return null;
     } catch (err) {
       console.error('Erro no Google Sign-In:', err);
       setBackupStatus({
         type: 'error',
         message: err.message || 'Não foi possível concluir o login na Google. Podes tentar novamente.',
       });
+      return null;
     } finally {
       setIsGoogleConnecting(false);
     }
   };
 
-  const handleSaveToDriveApi = async () => {
-    if (!googleAccount?.token) {
-      // Re-iniciar sessão se o token não existir
-      handleOfficialGoogleLogin();
-      return;
+  const isTokenExpired = Boolean(
+    googleAccount?.expiresAt && Date.now() > googleAccount.expiresAt
+  );
+
+  const handleSyncWithDrive = async (forcedAccount = null) => {
+    let account = forcedAccount || googleAccount;
+    const tokenIsExpired = !account?.token || (account.expiresAt && Date.now() > account.expiresAt);
+
+    // Se a sessão expirou ou não existe, renovar com login oficial
+    if (tokenIsExpired) {
+      account = await handleOfficialGoogleLogin();
+      if (!account?.token) return;
     }
 
     setIsExporting(true);
-    setBackupStatus(null);
+    setBackupStatus({
+      type: 'info',
+      message: 'A sincronizar dados com o Google Drive (a descarregar e atualizar treinos)...',
+    });
+
     try {
-      const backup = exportBackupData();
-      const res = await uploadBackupToGoogleDrive(backup, googleAccount.token);
-      const nowTime = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+      const res = await syncWithGoogleDrive(account.token);
+      const nowTime = res.timeString || new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+      setLastSyncTime(nowTime);
+
+      const msg = res.newItemsMerged > 0
+        ? `Sincronização concluída com sucesso às ${nowTime}! (${res.newItemsMerged} novo(s) treino(s) restaurados do Drive 🎉)`
+        : `Sincronizado com o Google Drive com sucesso às ${nowTime}! Todos os treinos e pesos estão 100% atualizados.`;
+
       setBackupStatus({
         type: 'success',
-        message: `Cópia guardada com sucesso no teu Google Drive às ${nowTime}! (${res.filename})`,
+        message: msg,
       });
-      setLastSyncTime(nowTime);
     } catch (err) {
-      console.error('Erro upload drive:', err);
-      // Se deu erro de token expirado, tenta autenticar novamente
-      if (err.message && (err.message.includes('401') || err.message.includes('Sessão Google expirada') || err.message.includes('Invalid Credentials'))) {
+      console.error('Erro na sincronização:', err);
+      if (err.isAuthError || err.message?.includes('UNAUTHENTICATED') || err.message?.includes('credential') || err.message?.includes('401')) {
         setBackupStatus({
           type: 'error',
-          message: 'A sessão da Google expirou. Clica em "Iniciar Sessão" para reautenticar.',
+          message: 'A sessão da Google expirou. Clica em "Renovar Sessão" para voltar a ligar.',
         });
-        setGoogleAccount(null);
-        setLastSyncTime(null);
-        disconnectGoogleAccount();
       } else {
         setBackupStatus({
           type: 'error',
-          message: err.message || 'Falha ao sincronizar com o Google Drive. Tenta novamente.',
+          message: err.message || 'Erro ao comunicar com o Google Drive. Tenta novamente.',
         });
       }
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleRestoreFromDrive = async () => {
+    let account = googleAccount;
+    const tokenIsExpired = !account?.token || (account.expiresAt && Date.now() > account.expiresAt);
+
+    if (tokenIsExpired) {
+      account = await handleOfficialGoogleLogin();
+      if (!account?.token) return;
+    }
+
+    setIsExporting(true);
+    setBackupStatus({
+      type: 'info',
+      message: 'A descarregar cópia de segurança do Google Drive...',
+    });
+
+    try {
+      const driveRes = await downloadLatestBackupFromGoogleDrive(account.token);
+      if (!driveRes.found || !driveRes.backupData) {
+        setBackupStatus({
+          type: 'error',
+          message: 'Nenhuma cópia de segurança encontrada nesta conta Google.',
+        });
+        return;
+      }
+
+      const { importBackupData } = await import('../services/storage');
+      const res = importBackupData(driveRes.backupData);
+
+      window.dispatchEvent(new CustomEvent('fit_data_synchronized', { detail: { count: res.count } }));
+
+      setBackupStatus({
+        type: 'success',
+        message: `Cópia restaurada com sucesso do Google Drive! (${res.count} registos recuperados 🎉)`,
+      });
+    } catch (err) {
+      console.error('Erro restore drive:', err);
+      if (err.isAuthError) {
+        setBackupStatus({
+          type: 'error',
+          message: 'A sessão da Google expirou. Clica em "Renovar Sessão" para reautenticar.',
+        });
+      } else {
+        setBackupStatus({
+          type: 'error',
+          message: err.message || 'Falha ao restaurar cópia do Google Drive.',
+        });
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleSaveToDriveApi = async () => {
+    handleSyncWithDrive();
   };
 
   const handleDisconnectGoogle = () => {
@@ -814,27 +889,98 @@ export default function ProfileView({
                         </button>
                       </div>
 
-                      {/* Indicador de Auto-Sync Ativo */}
-                      <div className="flex items-center justify-between text-[11px] text-emerald-800 bg-emerald-50/90 px-3 py-2 rounded-xl border border-emerald-200">
-                        <span className="flex items-center gap-1.5 font-bold">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          Sincronização Automática Ativa
-                        </span>
-                        <span className="text-[10px] text-emerald-700 font-mono font-bold">
-                          {lastSyncTime ? `Guardado às ${lastSyncTime}` : 'Ao concluir treinos'}
-                        </span>
-                      </div>
+                      {/* Indicador de Auto-Sync / Sessão */}
+                      {isTokenExpired ? (
+                        <div className="flex items-center justify-between text-[11px] text-amber-800 bg-amber-50 px-3 py-2.5 rounded-xl border border-amber-200">
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                            <span>Sessão expirada (Google)</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOfficialGoogleLogin()}
+                            className="text-[10px] font-bold text-amber-900 bg-amber-200 hover:bg-amber-300 px-2.5 py-1 rounded-lg transition"
+                          >
+                            Renovar Sessão ↻
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between text-[11px] text-emerald-800 bg-emerald-50/90 px-3 py-2 rounded-xl border border-emerald-200">
+                          <span className="flex items-center gap-1.5 font-bold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Sincronização Automática Ativa
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-mono font-bold">
+                            {lastSyncTime ? `Guardado às ${lastSyncTime}` : 'Ao concluir treinos'}
+                          </span>
+                        </div>
+                      )}
 
-                      {/* Action: Direct upload to Google Drive API */}
+                      {/* Notificação visível DENTRO do modal */}
+                      {backupStatus && (
+                        <div
+                          className={`p-3 rounded-2xl text-xs font-medium flex items-center gap-2 animate-fade-in ${
+                            backupStatus.type === 'success'
+                              ? 'bg-teal-50 border border-teal-200 text-teal-800'
+                              : backupStatus.type === 'info'
+                              ? 'bg-sky-50 border border-sky-200 text-sky-800'
+                              : 'bg-rose-50 border border-rose-200 text-rose-800'
+                          }`}
+                        >
+                          {backupStatus.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                          ) : backupStatus.type === 'info' ? (
+                            <RefreshCw className="w-4 h-4 text-sky-600 shrink-0 animate-spin" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                          )}
+                          <span className="flex-1">{backupStatus.message}</span>
+                          <button
+                            type="button"
+                            onClick={() => setBackupStatus(null)}
+                            className="text-sand-400 hover:text-sand-600 p-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Action: Sincronização Inteligente no Google Drive */}
                       <button
                         type="button"
-                        onClick={handleSaveToDriveApi}
+                        onClick={() => handleSyncWithDrive()}
                         disabled={isExporting}
                         className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold shadow-md shadow-emerald-200 flex items-center justify-center gap-2 transition active:scale-[0.98]"
                       >
-                        <GoogleDriveIcon />
-                        <span>{isExporting ? 'A enviar para o Google Drive...' : 'Sincronizar no Google Drive'}</span>
+                        {isExporting ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <GoogleDriveIcon />
+                        )}
+                        <span>{isExporting ? 'A sincronizar com o Google Drive...' : 'Sincronizar no Google Drive'}</span>
                       </button>
+
+                      {/* Ações secundárias: Restaurar Cópia do Drive */}
+                      <div className="grid grid-cols-2 gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={handleRestoreFromDrive}
+                          disabled={isExporting}
+                          className="py-2.5 px-3 rounded-xl bg-white hover:bg-cream-100 border border-sand-200 text-sand-600 text-[11px] font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+                        >
+                          <DownloadCloud className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Restaurar do Drive</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSyncWithDrive()}
+                          disabled={isExporting}
+                          className="py-2.5 px-3 rounded-xl bg-white hover:bg-cream-100 border border-sand-200 text-sand-600 text-[11px] font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+                        >
+                          <UploadCloud className="w-3.5 h-3.5 text-roseGold-500" />
+                          <span>Forçar Envio</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3 pt-1">
