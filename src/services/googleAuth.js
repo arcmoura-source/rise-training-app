@@ -93,7 +93,7 @@ export const requestGoogleLogin = async () => {
     try {
       const tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+        scope: 'email profile openid https://www.googleapis.com/auth/drive.file',
         prompt: 'select_account',
         error_callback: (err) => {
           if (!settled) {
