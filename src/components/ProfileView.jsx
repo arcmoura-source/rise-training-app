@@ -269,7 +269,7 @@ export default function ProfileView({
   };
 
   const handleLogoutAndResetOnboarding = () => {
-    if (window.confirm(`Tens a certeza que queres sair do perfil "${profile.nome}" e voltar ao ecrã inicial de boas-vindas do Rise?`)) {
+    if (window.confirm("Tens a certeza que queres sair?")) {
       localStorage.removeItem('fit_app_onboarding_completed');
       localStorage.removeItem('fit_rita_active_profile_id');
       localStorage.removeItem('fit_rita_profile');
