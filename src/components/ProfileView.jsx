@@ -1011,23 +1011,14 @@ export default function ProfileView({
 
               {/* Sair do Perfil / Trocar de Utilizador */}
               {profile.id !== 'perfil-rita' && (
-                <div className="p-4 rounded-3xl bg-white border border-sand-200 space-y-2.5 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <LogOut className="w-4 h-4 text-rose-500" />
-                    <span className="text-xs font-bold text-sand-500">Sair do Perfil / Trocar de Conta</span>
-                  </div>
-                  <p className="text-[11px] text-sand-400 leading-snug">
-                    Desejas sair do perfil atual ({profile.nome}) e voltar ao ecrã inicial com as abas de Criar Conta e Sincronizar?
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleLogoutAndResetOnboarding}
-                    className="w-full py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.98]"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sair do perfil {profile.nome} & Voltar ao Início</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleLogoutAndResetOnboarding}
+                  className="w-full py-3 px-4 rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-xs"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sair do perfil {profile.nome} & Voltar ao Início</span>
+                </button>
               )}
 
               {/* Informações da App e Políticas */}
