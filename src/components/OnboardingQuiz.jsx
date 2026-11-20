@@ -341,7 +341,7 @@ export default function OnboardingQuiz({ onComplete }) {
               onClick={() => setWelcomeTab('new')}
               className="text-xs text-roseGold-600 hover:text-roseGold-700 font-bold block mx-auto pt-1"
             >
-              Ainda não tens cópia? Criar nova conta →
+              Ainda não tens uma conta? Cria aqui o teu perfil! →
             </button>
           </div>
         )}
