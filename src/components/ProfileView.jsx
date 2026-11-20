@@ -38,6 +38,7 @@ import {
   RefreshCw,
   DownloadCloud,
   UploadCloud,
+  LogOut,
 } from 'lucide-react';
 
 
@@ -267,6 +268,22 @@ export default function ProfileView({
     }
   };
 
+  const handleLogoutAndResetOnboarding = () => {
+    if (window.confirm(`Tens a certeza que queres sair do perfil "${profile.nome}" e voltar ao ecrã inicial de boas-vindas do Rise?`)) {
+      localStorage.removeItem('fit_app_onboarding_completed');
+      localStorage.removeItem('fit_rita_active_profile_id');
+      localStorage.removeItem('fit_rita_profile');
+      localStorage.removeItem('fit_google_account');
+      localStorage.removeItem('fit_last_autosync_time');
+      try {
+        const list = JSON.parse(localStorage.getItem('fit_rita_all_profiles') || '[]');
+        const updated = list.filter(p => p.id !== profile.id && p.id !== 'perfil-temp');
+        localStorage.setItem('fit_rita_all_profiles', JSON.stringify(updated));
+      } catch {}
+      window.location.reload();
+    }
+  };
+
   // Edit form state
   const [formData, setFormData] = useState({
     nome: profile.nome || 'Rita',
@@ -412,29 +429,42 @@ export default function ProfileView({
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              setFormData({
-                nome: profile.nome || 'Ana',
-                peso: profile.peso || 58.0,
-                massaMuscular: profile.massaMuscular || 40.4,
-                altura: profile.altura || 1.60,
-                objetivo: profile.objetivo || 'Hipertrofia & Força',
-                ondeTreina: profile.ondeTreina || 'both',
-                diasSemanaAlvo: profile.diasSemanaAlvo || 4,
-                nivel: profile.nivel || 'Intermédio',
-              });
-              setIsEditing(!isEditing);
-            }}
-            className={`p-2.5 rounded-2xl transition ${
-              isEditing
-                ? 'bg-roseGold-100 text-roseGold-600'
-                : 'text-sand-400 hover:text-sand-600 hover:bg-cream-100 border border-sand-200'
-            }`}
-            title="Editar Perfil & Perguntas"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                setFormData({
+                  nome: profile.nome || 'Ana',
+                  peso: profile.peso || 58.0,
+                  massaMuscular: profile.massaMuscular || 40.4,
+                  altura: profile.altura || 1.60,
+                  objetivo: profile.objetivo || 'Hipertrofia & Força',
+                  ondeTreina: profile.ondeTreina || 'both',
+                  diasSemanaAlvo: profile.diasSemanaAlvo || 4,
+                  nivel: profile.nivel || 'Intermédio',
+                });
+                setIsEditing(!isEditing);
+              }}
+              className={`p-2.5 rounded-2xl transition ${
+                isEditing
+                  ? 'bg-roseGold-100 text-roseGold-600'
+                  : 'text-sand-400 hover:text-sand-600 hover:bg-cream-100 border border-sand-200'
+              }`}
+              title="Editar Perfil & Perguntas"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+
+            {profile.id !== 'perfil-rita' && (
+              <button
+                type="button"
+                onClick={handleLogoutAndResetOnboarding}
+                className="p-2.5 rounded-2xl text-sand-400 hover:text-rose-500 hover:bg-rose-50 border border-sand-200 transition"
+                title="Sair do perfil / Voltar ao Início"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ── QUESTIONNAIRE EDIT FORM ── */}
@@ -1000,6 +1030,27 @@ export default function ProfileView({
                   )}
                 </div>
               </div>
+
+              {/* Sair do Perfil / Trocar de Utilizador */}
+              {profile.id !== 'perfil-rita' && (
+                <div className="p-4 rounded-3xl bg-white border border-sand-200 space-y-2.5 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <LogOut className="w-4 h-4 text-rose-500" />
+                    <span className="text-xs font-bold text-sand-500">Sair do Perfil / Trocar de Conta</span>
+                  </div>
+                  <p className="text-[11px] text-sand-400 leading-snug">
+                    Desejas sair do perfil atual ({profile.nome}) e voltar ao ecrã inicial com as abas de Criar Conta e Sincronizar?
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleLogoutAndResetOnboarding}
+                    className="w-full py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.98]"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sair do perfil {profile.nome} & Voltar ao Início</span>
+                  </button>
+                </div>
+              )}
 
               {/* Informações da App e Políticas */}
               <div className="p-3.5 rounded-2xl bg-white border border-sand-200 space-y-2 text-center text-xs text-sand-400 shadow-xs">
