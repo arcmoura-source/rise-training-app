@@ -989,28 +989,6 @@ export default function ProfileView({
                         )}
                         <span>{isExporting ? 'A sincronizar com o Google Drive...' : 'Sincronizar no Google Drive'}</span>
                       </button>
-
-                      {/* Ações secundárias: Restaurar Cópia do Drive */}
-                      <div className="grid grid-cols-2 gap-2 pt-0.5">
-                        <button
-                          type="button"
-                          onClick={handleRestoreFromDrive}
-                          disabled={isExporting}
-                          className="py-2.5 px-3 rounded-xl bg-white hover:bg-cream-100 border border-sand-200 text-sand-600 text-[11px] font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
-                        >
-                          <DownloadCloud className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Restaurar do Drive</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSyncWithDrive()}
-                          disabled={isExporting}
-                          className="py-2.5 px-3 rounded-xl bg-white hover:bg-cream-100 border border-sand-200 text-sand-600 text-[11px] font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
-                        >
-                          <UploadCloud className="w-3.5 h-3.5 text-roseGold-500" />
-                          <span>Forçar Envio</span>
-                        </button>
-                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3 pt-1">
