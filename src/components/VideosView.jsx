@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Play, Clock, CheckCircle2, Search, X, ExternalLink, Plus,
-  Heart, Flame, Sparkles, ChevronDown, Check, Loader2, Link2
+  Heart, Flame, Sparkles, ChevronDown, Check, Loader2, Link2, Trash2
 } from 'lucide-react';
 import { YOUTUBE_VIDEOS, CANAIS_FAVORITOS } from '../data/videoData';
 import confetti from 'canvas-confetti';
@@ -11,12 +11,19 @@ import { auditVideosList, validateYoutubeVideo } from '../services/videoValidato
 // ── Persistence helpers ──────────────────────────────────────────────────────
 const STORAGE_LIKED   = 'rise_liked_videos';
 const STORAGE_CUSTOM  = 'rise_custom_videos';
+const STORAGE_HIDDEN  = 'rise_hidden_videos';
 
 function getLiked() {
   try { return JSON.parse(localStorage.getItem(STORAGE_LIKED) || '[]'); } catch { return []; }
 }
 function saveLiked(ids) {
   localStorage.setItem(STORAGE_LIKED, JSON.stringify(ids));
+}
+function getHiddenVideos() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_HIDDEN) || '[]'); } catch { return []; }
+}
+function saveHiddenVideos(ids) {
+  localStorage.setItem(STORAGE_HIDDEN, JSON.stringify(ids));
 }
 export function generateWorkoutDescription(title = '', channel = '', categoria = '', foco = '') {
   const lower = title.toLowerCase();
@@ -147,6 +154,7 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [customVideos, setCustomVideos] = useState(() => getCustomVideos());
   const [likedIds, setLikedIds]         = useState(() => getLiked());
+  const [hiddenIds, setHiddenIds]       = useState(() => getHiddenVideos());
 
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedCanal, setSelectedCanal]       = useState('Todos');
@@ -231,6 +239,7 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
     const isAdvanced = nivelLower.includes('avan');
 
     return smartSorted.filter((v) => {
+      if (hiddenIds.includes(v.id)) return false;
       if (invalidYtIds.has(v.youtubeId)) return false;
       if (showOnlyFavs && !likedIds.includes(v.id)) return false;
 
@@ -250,7 +259,7 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
 
       return matchesCategory && matchesCanal && matchesSearch;
     });
-  }, [smartSorted, selectedCategory, selectedCanal, searchTerm, showOnlyFavs, likedIds, invalidYtIds, profile?.nivel]);
+  }, [smartSorted, selectedCategory, selectedCanal, searchTerm, showOnlyFavs, likedIds, hiddenIds, invalidYtIds, profile?.nivel]);
 
   const toggleLike = (id, e) => {
     e.stopPropagation();
@@ -259,6 +268,31 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
       : [...likedIds, id];
     setLikedIds(updated);
     saveLiked(updated);
+  };
+
+  const handleDeleteVideo = (video, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Tens a certeza que queres eliminar este vídeo?')) return;
+
+    if (video.isCustom || customVideos.some((cv) => cv.id === video.id)) {
+      const updatedCustom = customVideos.filter((cv) => cv.id !== video.id);
+      setCustomVideos(updatedCustom);
+      localStorage.setItem(STORAGE_CUSTOM, JSON.stringify(updatedCustom));
+    } else {
+      const updatedHidden = [...hiddenIds, video.id];
+      setHiddenIds(updatedHidden);
+      saveHiddenVideos(updatedHidden);
+    }
+
+    if (likedIds.includes(video.id)) {
+      const updatedLiked = likedIds.filter((x) => x !== video.id);
+      setLikedIds(updatedLiked);
+      saveLiked(updatedLiked);
+    }
+
+    if (activeVideo?.id === video.id) {
+      setActiveVideo(null);
+    }
   };
 
   const handleFinishVideo = (video) => {
@@ -675,18 +709,29 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
                       </h3>
                     </div>
 
-                    {/* Heart / Like Button */}
-                    <button
-                      onClick={(e) => toggleLike(video.id, e)}
-                      className={`shrink-0 p-2 rounded-xl transition active:scale-90 ${
-                        isLiked
-                          ? 'text-roseGold-500 bg-roseGold-50 hover:bg-roseGold-100'
-                          : 'text-sand-300 hover:text-roseGold-400 hover:bg-cream-100'
-                      }`}
-                      title={isLiked ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-                    >
-                      <Heart className={`w-5 h-5 transition-transform ${isLiked ? 'fill-current scale-110' : ''}`} />
-                    </button>
+                    {/* Heart & Delete Buttons */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => toggleLike(video.id, e)}
+                        className={`p-2 rounded-xl transition active:scale-90 ${
+                          isLiked
+                            ? 'text-roseGold-500 bg-roseGold-50 hover:bg-roseGold-100'
+                            : 'text-sand-300 hover:text-roseGold-400 hover:bg-cream-100'
+                        }`}
+                        title={isLiked ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                      >
+                        <Heart className={`w-5 h-5 transition-transform ${isLiked ? 'fill-current scale-110' : ''}`} />
+                      </button>
+
+                      <button
+                        onClick={(e) => handleDeleteVideo(video, e)}
+                        className="p-2 rounded-xl text-sand-300 hover:text-rose-500 hover:bg-rose-50 transition active:scale-90"
+                        title="Eliminar vídeo"
+                        aria-label="Eliminar vídeo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <p className="text-xs text-sand-400 line-clamp-2 leading-relaxed">
