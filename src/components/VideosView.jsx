@@ -225,19 +225,32 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
   const categories = ['Todos', 'Alta Intensidade', 'Glúteos', 'Força', 'Pilates', 'Mobilidade'];
   const canais = ['Todos', 'growingannanas', 'Olivia Lawson', 'Heather Robertson', 'Move With Nicole', 'Caroline Girvan', 'Pamela Reif'];
 
-  const filteredVideos = useMemo(() => smartSorted.filter((v) => {
-    if (invalidYtIds.has(v.youtubeId)) return false;
-    if (showOnlyFavs && !likedIds.includes(v.id)) return false;
+  const filteredVideos = useMemo(() => {
+    const nivelLower = (profile?.nivel || 'Intermédio').toLowerCase();
+    const isBeginner = nivelLower.includes('inici');
+    const isAdvanced = nivelLower.includes('avan');
 
-    const matchesCategory = selectedCategory === 'Todos' || v.categoria === selectedCategory;
-    const matchesCanal    = selectedCanal === 'Todos' || v.canal.toLowerCase() === selectedCanal.toLowerCase();
-    const matchesSearch   = searchTerm === '' ||
-      v.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.canal.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.foco.toLowerCase().includes(searchTerm.toLowerCase());
+    return smartSorted.filter((v) => {
+      if (invalidYtIds.has(v.youtubeId)) return false;
+      if (showOnlyFavs && !likedIds.includes(v.id)) return false;
 
-    return matchesCategory && matchesCanal && matchesSearch;
-  }), [smartSorted, selectedCategory, selectedCanal, searchTerm, showOnlyFavs, likedIds, invalidYtIds]);
+      // Filtrar estritamente por nível de intensidade do perfil (exceto vídeos adicionados manualmente)
+      if (!v.isCustom) {
+        const int = v.intensidade || 3;
+        if (isBeginner && int > 3) return false;
+        if (!isBeginner && !isAdvanced && int >= 5) return false;
+      }
+
+      const matchesCategory = selectedCategory === 'Todos' || v.categoria === selectedCategory;
+      const matchesCanal    = selectedCanal === 'Todos' || v.canal.toLowerCase() === selectedCanal.toLowerCase();
+      const matchesSearch   = searchTerm === '' ||
+        v.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.canal.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.foco.toLowerCase().includes(searchTerm.toLowerCase());
+
+      return matchesCategory && matchesCanal && matchesSearch;
+    });
+  }, [smartSorted, selectedCategory, selectedCanal, searchTerm, showOnlyFavs, likedIds, invalidYtIds, profile?.nivel]);
 
   const toggleLike = (id, e) => {
     e.stopPropagation();
