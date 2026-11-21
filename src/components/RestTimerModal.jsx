@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, RotateCcw, X, Volume2, Plus, Minus, Bell } from 'lucide-react';
-import { playTimerBeep, playCompletionChime } from '../utils/audio';
+import { Play, Pause, RotateCcw, X, Plus, Minus, Bell } from 'lucide-react';
 
 export default function RestTimerModal({ isOpen, onClose, initialSeconds = 90 }) {
   const [totalSeconds, setTotalSeconds] = useState(initialSeconds);
@@ -19,14 +18,7 @@ export default function RestTimerModal({ isOpen, onClose, initialSeconds = 90 })
     let interval = null;
     if (isRunning && secondsLeft > 0) {
       interval = setInterval(() => {
-        setSecondsLeft((prev) => {
-          if (prev <= 4 && prev > 1) {
-            playTimerBeep(600, 0.1);
-          } else if (prev === 1) {
-            playCompletionChime();
-          }
-          return prev - 1;
-        });
+        setSecondsLeft((prev) => prev - 1);
       }, 1000);
     } else if (secondsLeft === 0 && isRunning) {
       setIsRunning(false);
