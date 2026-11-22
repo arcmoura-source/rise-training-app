@@ -13,6 +13,7 @@ export default function VideoFeedbackModal({ video, isOpen, onClose, onSubmitFee
 
   const quickTags = [
     '🔥 Muito Puxado',
+    '🥵 Muito Desgastante',
     '🍑 Senti os Glúteos',
     '⚡ Ritmo Acelerado',
     '✨ Adorei a Aula',

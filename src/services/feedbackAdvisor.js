@@ -32,22 +32,42 @@ export function analyzeRecentFeedback(history = []) {
   const treinoTitulo = latest.treinoTitulo || latest.titulo || 'Treino anterior';
   const treinoTipo = (latest.tipo || '').toLowerCase();
 
-  // Sinais de Fadiga / Esforço Extremo
-  const isFatigueOrHeavy =
-    rating <= 2 ||
+  // Sinais de Fadiga / Esforço Extremo / Desgaste (mesmo com avaliação de 5★!)
+  const isEntryExhausting = (entry) => {
+    const t = (Array.isArray(entry?.tags) ? entry.tags.join(' ') : '').toLowerCase();
+    const f = (entry?.feedback || entry?.notes || entry?.comentario || '').toLowerCase();
+    const r = Number(entry?.rating) || 5;
+    return (
+      r <= 2 ||
+      t.includes('desgast') ||
+      t.includes('cansaço') ||
+      t.includes('pesado') ||
+      t.includes('muito puxado') ||
+      t.includes('fadiga') ||
+      t.includes('pouca energia') ||
+      f.includes('desgast') ||
+      f.includes('esgotad') ||
+      f.includes('cansad') ||
+      f.includes('muito pesado') ||
+      f.includes('exausta') ||
+      f.includes('exaustão') ||
+      f.includes('cansaço') ||
+      f.includes('fadiga') ||
+      f.includes('morri') ||
+      f.includes('pesadíssimo') ||
+      f.includes('não aguentei')
+    );
+  };
+
+  const isFatigueOrHeavy = isEntryExhausting(latest);
+  const recentExhaustingCount = lastThree.filter(isEntryExhausting).length;
+  const isHeavyExhaustion =
+    tagsLower.includes('desgast') ||
     tagsLower.includes('cansaço') ||
-    tagsLower.includes('pesado') ||
-    tagsLower.includes('muito puxado') ||
-    tagsLower.includes('fadiga') ||
-    tagsLower.includes('pouca energia') ||
-    feedbackLower.includes('muito pesado') ||
+    feedbackLower.includes('desgast') ||
     feedbackLower.includes('exausta') ||
-    feedbackLower.includes('exaustão') ||
-    feedbackLower.includes('cansaço') ||
-    feedbackLower.includes('fadiga') ||
-    feedbackLower.includes('morri') ||
-    feedbackLower.includes('pesadíssimo') ||
-    feedbackLower.includes('não aguentei');
+    feedbackLower.includes('esgotad') ||
+    recentExhaustingCount >= 2;
 
   // Sinais de Dor Articular ou Desconforto
   const hasPainOrDiscomfort =
@@ -106,6 +126,7 @@ export function analyzeRecentFeedback(history = []) {
     treinoTipo,
     isLowerBody,
     isFatigueOrHeavy,
+    isHeavyExhaustion,
     hasPainOrDiscomfort,
     isHighEnergy,
     isTooLight,
@@ -189,6 +210,7 @@ export function getFeedbackAdaptedStrategy(
     isLowerBody,
     hasPainOrDiscomfort,
     isFatigueOrHeavy,
+    isHeavyExhaustion,
     isHighEnergy,
     isTooLight,
   } = feedbackAnalysis;
@@ -300,10 +322,27 @@ export function getFeedbackAdaptedStrategy(
     };
   }
 
-  // 2. Caso de Fadiga Acentuada / "Muito Puxado" / 1-2 estrelas em pernas
+  // 2. Caso de Desgaste Elevado / Fadiga Acentuada (mesmo tendo gostado e dado 5 estrelas!)
   if (isFatigueOrHeavy) {
     const feedbackQuote = rawFeedback ? ` ("${rawFeedback}")` : tags.length > 0 ? ` (${tags[0]})` : '';
-    // Se foi pernas/glúteos que esgotou, dar descanso aos membros inferiores
+
+    if (isHeavyExhaustion) {
+      return {
+        ...baseStrategy,
+        focusArea: 'mobility',
+        suggestRestDay: true,
+        targetLabel: 'Dia de Descanso ou Mobilidade Suave 🛌',
+        motivo: `Adaptado ao teu feedback: Mesmo tendo gostado do treino (${treinoTitulo}), indicaste elevado desgaste${feedbackQuote}. O músculo cresce e o corpo recupera no descanso — hoje recomendamos um dia de descanso total ou apenas 10–15 min de alongamentos suaves!`,
+        feedbackNotice: {
+          tipo: 'info',
+          titulo: 'Descanso Recomendado 🛌',
+          texto: `Após um treino muito desgastante, prioriza o descanso e recuperação antes da próxima carga.`,
+        },
+        adaptationType: 'rest_recommended',
+      };
+    }
+
+    // Se foi pernas/glúteos que puxou muito, dar descanso aos membros inferiores
     if (isLowerBody && baseStrategy.focusArea !== 'upper') {
       return {
         focusArea: 'upper',

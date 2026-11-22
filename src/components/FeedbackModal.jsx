@@ -20,6 +20,7 @@ export default function FeedbackModal({
 
   const quickTags = [
     '🔥 Muito Puxado',
+    '🥵 Muito Desgastante',
     '💪 Cargas Perfeitas',
     '🍑 Senti os Glúteos',
     '⚡ Ritmo Acelerado',
