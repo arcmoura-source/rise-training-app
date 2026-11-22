@@ -303,7 +303,10 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
     if (!feedbackVideo) return;
 
     const duracaoMinutos = parseInt(feedbackVideo.duracao) || 30;
-    const caloriasEstimadas = Math.round(duracaoMinutos * 7.5);
+    const metByIntensity = { 1: 3.0, 2: 3.8, 3: 5.0, 4: 6.5, 5: 8.0 };
+    const met = metByIntensity[feedbackVideo.intensidade || 3] || 5.0;
+    const userWeight = profile?.peso ? Number(profile.peso) : 58;
+    const caloriasEstimadas = Math.round(met * userWeight * (duracaoMinutos / 60));
     const feedbackText = (feedback || comment || note || '').trim();
 
     const logEntry = {

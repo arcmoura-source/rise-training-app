@@ -138,30 +138,41 @@ export default function AddActivityModal({
   // Peso corporal do utilizador (default 58 kg)
   const userWeight = profile?.peso ? Number(profile.peso) : 58;
 
-  // Cálculo rigoroso de calorias baseado na Distância e Peso (ou tempo/MET para ginásio)
+  // Cálculo rigoroso de calorias baseado na Distância, Tempo, Intensidade e Peso
   const autoEstimatedCalories = useMemo(() => {
     const dist = parseFloat(distanceKm);
-    const durHours = (Number(duration) || 0) / 60;
+    const durMins = Number(duration) || 0;
+    const durHours = durMins / 60;
+    if (durHours <= 0) return 0;
 
-    // 1. Caminhada com distância: Gasto calórico = Peso (kg) * Distância (km) * 0.75
+    const intensityFactor =
+      intensity === 'Leve' ? 0.85 :
+      intensity === 'Intensa' ? 1.2 :
+      intensity === 'Muito Intensa' ? 1.35 : 1.0;
+
+    // 1. Caminhada com distância e tempo: calcula velocidade real -> MET dinâmico * peso * tempo
     if (selectedPresetId === 'caminhada' && !isNaN(dist) && dist > 0) {
-      return Math.round(userWeight * dist * 0.75);
+      const speedKmhVal = dist / durHours;
+      const dynamicMet = Math.min(6.5, Math.max(2.5, 1.8 + speedKmhVal * 0.52));
+      return Math.max(10, Math.round(dynamicMet * userWeight * durHours));
     }
 
-    // 2. Corrida com distância: Gasto calórico = Peso (kg) * Distância (km) * 1.036
+    // 2. Corrida com distância e tempo: calcula velocidade real -> MET dinâmico * peso * tempo
     if (selectedPresetId === 'corrida' && !isNaN(dist) && dist > 0) {
-      return Math.round(userWeight * dist * 1.036);
+      const speedKmhVal = dist / durHours;
+      const dynamicMet = Math.min(14.5, Math.max(6.0, 2.5 + speedKmhVal * 0.85));
+      return Math.max(15, Math.round(dynamicMet * userWeight * durHours));
     }
 
-    // 3. Spinning com distância: ~22 kcal por km + taxa horária de esforço
+    // 3. Spinning com distância e tempo
     if (selectedPresetId === 'spinning' && !isNaN(dist) && dist > 0) {
-      return Math.round(dist * 20 + userWeight * durHours * 2.2);
+      return Math.max(15, Math.round((dist * 18 + userWeight * durHours * 2.5) * intensityFactor));
     }
 
-    // 4. Ginásio / Vídeos ou caso sem km: cálculo por MET e tempo
-    const est = Math.round(currentPreset.met * userWeight * durHours);
+    // 4. Ginásio / Vídeos ou caso sem km: cálculo por MET, intensidade e tempo
+    const est = Math.round(currentPreset.met * intensityFactor * userWeight * durHours);
     return Math.max(10, est);
-  }, [selectedPresetId, distanceKm, duration, currentPreset.met, userWeight]);
+  }, [selectedPresetId, distanceKm, duration, intensity, currentPreset.met, userWeight]);
 
   // Cálculo da velocidade média (km/h)
   const speedKmh = useMemo(() => {
@@ -182,8 +193,11 @@ export default function AddActivityModal({
     return `${mins}:${secs < 10 ? '0' : ''}${secs} /km`;
   }, [distanceKm, duration]);
 
-  // Atualizar data inicial quando o modal abre
+  // Atualizar data inicial e resetar modo manual de calorias quando o modal abre
   useEffect(() => {
+    if (isOpen) {
+      setIsCaloriesCustom(false);
+    }
     if (initialDate) {
       const d = new Date(initialDate);
       setCustomDate(d.toISOString().split('T')[0]);
@@ -236,7 +250,13 @@ export default function AddActivityModal({
             author: data.author_name,
             thumbnail: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`,
           });
-          if (data.title) setTitle(data.title);
+          if (data.title) {
+            setTitle(data.title);
+            const durMatch = data.title.match(/(\d+)\s*(?:min|mins|minuto|minutos|m\b)/i);
+            if (durMatch && parseInt(durMatch[1], 10) > 0) {
+              setDuration(parseInt(durMatch[1], 10));
+            }
+          }
         } else {
           setYoutubeInfo({
             id: ytId,
