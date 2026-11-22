@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Sparkles,
+  ChevronLeft,
   ChevronRight,
   Play,
   Calendar as CalendarIcon,
@@ -46,11 +47,73 @@ export default function HomeView({
   const [showTipModal, setShowTipModal] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalTargetDate, setModalTargetDate] = useState(() => new Date());
+  const [isMonthModalOpen, setIsMonthModalOpen] = useState(false);
+  const [monthCursor, setMonthCursor] = useState(() => new Date());
+  const [monthSelectedDate, setMonthSelectedDate] = useState(() => new Date());
 
   const handleOpenAddModal = (date) => {
     setModalTargetDate(date || selectedDate || new Date());
     setIsAddModalOpen(true);
   };
+
+  const handleOpenMonthModal = () => {
+    setMonthCursor(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+    setMonthSelectedDate(selectedDate);
+    setIsMonthModalOpen(true);
+  };
+
+  // ── Monthly Calendar Grid Data ───────────────────────────────────────────
+  const monthGridDays = useMemo(() => {
+    const year = monthCursor.getFullYear();
+    const month = monthCursor.getMonth();
+    const firstDayWeekday = new Date(year, month, 1).getDay(); // 0=Dom ... 6=Sáb
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const now = new Date();
+
+    const cells = [];
+    for (let i = 0; i < firstDayWeekday; i++) {
+      cells.push(null);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(year, month, day);
+      const dayWorkouts = (history || []).filter((h) => {
+        if (!h.data) return false;
+        const hd = new Date(h.data);
+        return (
+          hd.getDate() === day &&
+          hd.getMonth() === month &&
+          hd.getFullYear() === year
+        );
+      });
+      const isToday =
+        day === now.getDate() &&
+        month === now.getMonth() &&
+        year === now.getFullYear();
+
+      cells.push({
+        date: d,
+        dayNum: day,
+        isToday,
+        workouts: dayWorkouts,
+        hasWorkout: dayWorkouts.length > 0,
+      });
+    }
+
+    return cells;
+  }, [monthCursor, history]);
+
+  const monthSelectedDayWorkouts = useMemo(() => {
+    return (history || []).filter((h) => {
+      if (!h.data) return false;
+      const hd = new Date(h.data);
+      return (
+        hd.getDate() === monthSelectedDate.getDate() &&
+        hd.getMonth() === monthSelectedDate.getMonth() &&
+        hd.getFullYear() === monthSelectedDate.getFullYear()
+      );
+    });
+  }, [history, monthSelectedDate]);
 
   React.useEffect(() => {
     if (userPref === 'gym') setWorkoutMode('gym');
@@ -523,7 +586,12 @@ export default function HomeView({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white border border-sand-200 text-xs shadow-soft flex-shrink-0">
+        <button
+          type="button"
+          onClick={handleOpenMonthModal}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white hover:bg-cream-100 border border-sand-200 text-xs shadow-soft flex-shrink-0 transition active:scale-95"
+          title="Ver Calendário do Mês"
+        >
           <CalendarIcon className="w-3.5 h-3.5 text-roseGold-500" />
           <span className="font-bold text-sand-500">
             {selectedDate.toLocaleDateString('pt-PT', {
@@ -532,7 +600,7 @@ export default function HomeView({
               month: 'short',
             })}
           </span>
-        </div>
+        </button>
       </div>
 
       {/* ── META SEMANAL & CALENDÁRIO COM HISTÓRICO ── */}
@@ -544,9 +612,20 @@ export default function HomeView({
               Meta Semanal
             </span>
           </div>
-          <span className="text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-cream-200 text-roseGold-600 border border-cream-300">
-            {completedThisWeek}/{weeklyGoal} treinos
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-cream-200 text-roseGold-600 border border-cream-300">
+              {completedThisWeek}/{weeklyGoal} treinos
+            </span>
+            <button
+              type="button"
+              onClick={handleOpenMonthModal}
+              className="p-1.5 rounded-xl bg-cream-100 hover:bg-roseGold-50 text-sand-500 hover:text-roseGold-600 border border-sand-200 transition active:scale-95"
+              title="Abrir Calendário Mensal"
+              aria-label="Abrir Calendário Mensal"
+            >
+              <CalendarIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* 7 Days Strip in Warm Beige & Rose Gold */}
@@ -1140,6 +1219,157 @@ export default function HomeView({
               >
                 Falar com o Coach
                 <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Calendário Mensal */}
+      {isMonthModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-sand-600/60 backdrop-blur-sm animate-fade-in overflow-y-auto"
+          onClick={() => setIsMonthModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-4 sm:p-5 max-w-sm w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-sand-200 space-y-4 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header do Calendário Mensal */}
+            <div className="flex items-center justify-between border-b border-sand-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-roseGold-100 text-roseGold-600 flex items-center justify-center">
+                  <CalendarIcon className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-extrabold text-sand-500 capitalize">
+                  {monthCursor.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}
+                  className="p-1.5 rounded-xl bg-cream-100 hover:bg-cream-200 text-sand-500 transition"
+                  title="Mês anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}
+                  className="p-1.5 rounded-xl bg-cream-100 hover:bg-cream-200 text-sand-500 transition"
+                  title="Mês seguinte"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMonthModalOpen(false)}
+                  className="p-1.5 rounded-xl text-sand-400 hover:text-sand-600 hover:bg-cream-100 ml-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Dias da semana */}
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((wd) => (
+                <span key={wd} className="text-[10px] font-bold uppercase text-sand-400 py-1">
+                  {wd}
+                </span>
+              ))}
+
+              {monthGridDays.map((cell, idx) => {
+                if (!cell) return <div key={`empty-${idx}`} className="h-10" />;
+
+                const isSel =
+                  cell.date.getDate() === monthSelectedDate.getDate() &&
+                  cell.date.getMonth() === monthSelectedDate.getMonth() &&
+                  cell.date.getFullYear() === monthSelectedDate.getFullYear();
+
+                return (
+                  <button
+                    key={cell.dayNum}
+                    type="button"
+                    onClick={() => setMonthSelectedDate(cell.date)}
+                    className={`h-10 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition relative ${
+                      isSel
+                        ? 'bg-roseGold-400 text-white shadow-sm'
+                        : cell.isToday
+                        ? 'bg-roseGold-50 text-roseGold-600 border border-roseGold-300'
+                        : 'bg-cream-50/70 text-sand-500 hover:bg-cream-200'
+                    }`}
+                  >
+                    <span className="font-mono leading-none">{cell.dayNum}</span>
+                    {cell.hasWorkout && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                          isSel ? 'bg-white' : 'bg-emerald-500'
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Treinos do Dia Selecionado no Mês */}
+            <div className="pt-2 border-t border-sand-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-sand-400">
+                  {monthSelectedDate.toLocaleDateString('pt-PT', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'short',
+                  })}
+                </span>
+                <span className="text-[11px] font-bold text-roseGold-600">
+                  {monthSelectedDayWorkouts.length} treino(s)
+                </span>
+              </div>
+
+              {monthSelectedDayWorkouts.length > 0 ? (
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {monthSelectedDayWorkouts.map((w, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2.5 rounded-2xl bg-cream-50 border border-sand-200 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-sand-500 block truncate">
+                            {w.treinoTitulo || 'Treino Concluído'}
+                          </span>
+                          <span className="text-[11px] text-sand-400">
+                            {w.tipo || 'Ginásio'} • {w.duracaoMinutos || 30} min
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-sand-400 text-center py-2 bg-cream-50/70 rounded-2xl border border-dashed border-sand-200">
+                  Sem treinos registados neste dia.
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = new Date(monthSelectedDate);
+                  setIsMonthModalOpen(false);
+                  handleOpenAddModal(target);
+                }}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-roseGold-400 to-roseGold-500 text-white text-xs font-bold shadow-md shadow-roseGold-200/50 flex items-center justify-center gap-1.5 transition active:scale-95"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Registar Treino neste Dia</span>
               </button>
             </div>
           </div>

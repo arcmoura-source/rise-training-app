@@ -465,11 +465,40 @@ export const getHistory = (targetProfileId) => {
       return h;
     });
 
-    if (needsDateFix || JSON.stringify(enriched) !== JSON.stringify(parsed)) {
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(enriched));
+    // Ensure Saturday 21 Nov (Olivia Lawson Upper Body & Core) is logged for Rita
+    let finalHistory = enriched;
+    const hasSab21 = finalHistory.some(
+      (h) => h.id === 'hist-sab-21' || h.youtubeId === 'rPhiowAOJ0E' || (h.treinoTitulo || '').includes('UPPER BODY & CORE WORKOUT')
+    );
+    if (!hasSab21) {
+      needsDateFix = true;
+      finalHistory = [
+        {
+          id: "hist-sab-21",
+          data: "2026-11-21T18:00:00.000Z",
+          treinoId: "yt-ol-upper-core",
+          youtubeId: "rPhiowAOJ0E",
+          link: "https://www.youtube.com/watch?v=rPhiowAOJ0E",
+          treinoTitulo: "Olivia Lawson: 30 MIN UPPER BODY & CORE WORKOUT",
+          duracaoMinutos: 30,
+          caloriasEstimadas: 225,
+          tipo: "Home Video",
+          canal: "Olivia Lawson",
+          foco: "Superiores & Core",
+          categoria: "Superior",
+          rating: 5,
+          exerciciosFeitos: ["30 MIN UPPER BODY & CORE WORKOUT- Intermediate Arms & Abs Home Workout"],
+        },
+        ...finalHistory,
+      ];
+      finalHistory.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
     }
 
-    return enriched;
+    if (needsDateFix || JSON.stringify(finalHistory) !== JSON.stringify(parsed)) {
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(finalHistory));
+    }
+
+    return finalHistory;
   } catch (e) {
     return [];
   }
