@@ -626,7 +626,7 @@ export default function WorkoutsListView({
                   { label: 'Quadríceps & Pernas', icon: '🦵' },
                   { label: 'Superiores & Braços', icon: '💪' },
                   { label: 'Core & Oblíquos', icon: '⚡' },
-                  { label: 'Full Body 40 min', icon: '🏋️‍♀️' },
+                  { label: 'Full Body', icon: '🏋️‍♀️' },
                   { label: 'Mobilidade & Postura', icon: '🧘‍♀️' },
                 ].map((chip) => (
                   <button
