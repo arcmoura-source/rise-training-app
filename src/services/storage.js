@@ -516,15 +516,18 @@ export const addWorkoutHistory = (entry, targetProfileId) => {
   return updated;
 };
 
-export const getChatMessages = () => {
+export const getChatMessages = (profileName, targetProfileId) => {
+  const activeId = targetProfileId || localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID) || (isRitaDomain() ? 'perfil-rita' : 'default');
+  const chatKey = activeId === 'perfil-rita' ? STORAGE_KEYS.CHAT : `fit_chat_${activeId}`;
+  const userName = (profileName || '').trim() || (isRitaDomain() ? 'Rita' : 'Atleta');
+
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.CHAT);
+    const data = localStorage.getItem(chatKey);
     if (data) {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // If the first message is the old welcome message, update it to the exact requested text
         if (parsed[0].id === 'msg-welcome') {
-          parsed[0].text = 'Olá Rita! Como posso ajudar-te hoje com o teu treino?';
+          parsed[0].text = `Olá ${userName}! Como posso ajudar-te hoje com o teu treino?`;
         }
         return parsed;
       }
@@ -536,13 +539,15 @@ export const getChatMessages = () => {
       id: "msg-welcome",
       sender: "ai",
       timestamp: new Date().toISOString(),
-      text: "Olá Rita! Como posso ajudar-te hoje com o teu treino?",
+      text: `Olá ${userName}! Como posso ajudar-te hoje com o teu treino?`,
     }
   ];
 };
 
-export const saveChatMessages = (messages) => {
-  localStorage.setItem(STORAGE_KEYS.CHAT, JSON.stringify(messages));
+export const saveChatMessages = (messages, targetProfileId) => {
+  const activeId = targetProfileId || localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID) || (isRitaDomain() ? 'perfil-rita' : 'default');
+  const chatKey = activeId === 'perfil-rita' ? STORAGE_KEYS.CHAT : `fit_chat_${activeId}`;
+  localStorage.setItem(chatKey, JSON.stringify(messages));
 };
 
 // ── BACKUP & CLOUD RESTORE SERVICES ──

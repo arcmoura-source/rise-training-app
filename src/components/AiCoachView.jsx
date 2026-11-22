@@ -12,7 +12,7 @@ import { generateAiAdvice } from '../services/aiCoach';
 import { getChatMessages, saveChatMessages } from '../services/storage';
 import { analyzeRecentFeedback } from '../services/feedbackAdvisor';
 
-const DEFAULT_WELCOME = `Olá Rita! ✨ Sou o teu AI Personal Coach.
+const buildWelcomeMessage = (name) => `Olá ${name || 'Atleta'}! ✨ Sou o teu AI Personal Coach.
 
 Podes fazer-me qualquer pergunta sobre os teus treinos de ginásio, vídeos de casa, substituição de máquinas ou dicas de alimentação.
 
@@ -108,11 +108,13 @@ function FormattedMessage({ text }) {
 }
 
 export default function AiCoachView({ profile, workouts, history = [] }) {
+  const welcomeText = buildWelcomeMessage(profile?.nome);
+
   const [messages, setMessages] = useState(() => {
-    const list = getChatMessages();
+    const list = getChatMessages(profile?.nome, profile?.id);
     if (Array.isArray(list) && list.length > 0) {
       if (list[0].id === 'msg-welcome') {
-        list[0].text = DEFAULT_WELCOME;
+        list[0].text = welcomeText;
       }
       return list;
     }
@@ -121,10 +123,32 @@ export default function AiCoachView({ profile, workouts, history = [] }) {
         id: "msg-welcome",
         sender: "ai",
         timestamp: new Date().toISOString(),
-        text: DEFAULT_WELCOME,
+        text: welcomeText,
       }
     ];
   });
+
+  // Atualizar chat ao mudar de perfil ou nome
+  useEffect(() => {
+    const list = getChatMessages(profile?.nome, profile?.id);
+    const updatedWelcome = buildWelcomeMessage(profile?.nome);
+    if (Array.isArray(list) && list.length > 0) {
+      if (list[0].id === 'msg-welcome') {
+        list[0].text = updatedWelcome;
+      }
+      setMessages(list);
+    } else {
+      setMessages([
+        {
+          id: "msg-welcome",
+          sender: "ai",
+          timestamp: new Date().toISOString(),
+          text: updatedWelcome,
+        }
+      ]);
+    }
+  }, [profile?.id, profile?.nome]);
+
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -143,8 +167,8 @@ export default function AiCoachView({ profile, workouts, history = [] }) {
 
   useEffect(() => {
     scrollToBottom();
-    saveChatMessages(messages);
-  }, [messages, isTyping]);
+    saveChatMessages(messages, profile?.id);
+  }, [messages, isTyping, profile?.id]);
 
   const handleSend = async (textToSend) => {
     const text = (textToSend || inputText).trim();
@@ -175,7 +199,7 @@ export default function AiCoachView({ profile, workouts, history = [] }) {
         id: 'msg-' + (Date.now() + 1),
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        text: `Desculpa ${profile?.nome || 'Rita'}, tive uma pequena falha de ligação. Podes repetir a tua pergunta?`,
+        text: `Desculpa ${profile?.nome || 'Atleta'}, tive uma pequena falha de ligação. Podes repetir a tua pergunta?`,
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
