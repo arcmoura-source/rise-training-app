@@ -109,6 +109,7 @@ export default function App() {
 
   const [currentTab, setCurrentTab] = useState('home');
   const [activeWorkout, setActiveWorkout] = useState(null);
+  const [selectedVideoToOpen, setSelectedVideoToOpen] = useState(null);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(() => {
@@ -276,6 +277,10 @@ export default function App() {
                   setTab={setCurrentTab}
                   history={history}
                   onLogActivity={handleLogManualActivity}
+                  onOpenVideo={(video) => {
+                    setSelectedVideoToOpen(video);
+                    setCurrentTab('videos');
+                  }}
                 />
               )}
 
@@ -295,6 +300,8 @@ export default function App() {
                   profile={profile}
                   onLogVideoWorkout={handleLogVideoWorkout}
                   history={history}
+                  initialVideo={selectedVideoToOpen}
+                  onClearInitialVideo={() => setSelectedVideoToOpen(null)}
                 />
               )}
 

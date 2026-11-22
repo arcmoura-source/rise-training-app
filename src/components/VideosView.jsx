@@ -150,7 +150,7 @@ function getCustomVideos() {
   }
 }
 
-export default function VideosView({ profile, onLogVideoWorkout, history }) {
+export default function VideosView({ profile, onLogVideoWorkout, history, initialVideo, onClearInitialVideo }) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [customVideos, setCustomVideos] = useState(() => getCustomVideos());
   const [likedIds, setLikedIds]         = useState(() => getLiked());
@@ -159,7 +159,14 @@ export default function VideosView({ profile, onLogVideoWorkout, history }) {
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedCanal, setSelectedCanal]       = useState('Todos');
   const [searchTerm, setSearchTerm]             = useState('');
-  const [activeVideo, setActiveVideo]           = useState(null);
+  const [activeVideo, setActiveVideo]           = useState(initialVideo || null);
+
+  useEffect(() => {
+    if (initialVideo) {
+      setActiveVideo(initialVideo);
+      if (onClearInitialVideo) onClearInitialVideo();
+    }
+  }, [initialVideo, onClearInitialVideo]);
   const [feedbackVideo, setFeedbackVideo]       = useState(null);
   const [showAddModal, setShowAddModal]         = useState(false);
   const [showOnlyFavs, setShowOnlyFavs]         = useState(false);

@@ -39,6 +39,7 @@ export default function HomeView({
   setTab,
   history = [],
   onLogActivity,
+  onOpenVideo,
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const userPref = profile?.ondeTreina || 'both';
@@ -921,11 +922,11 @@ export default function HomeView({
 
           {/* Featured Video Card */}
           {recommendedHomeVideo && (
-            <div className="bg-white rounded-3xl overflow-hidden shadow-soft border border-sand-100 hover:border-roseGold-200 transition-all">
-              <div
-                className="relative aspect-video w-full cursor-pointer bg-sand-200 group"
-                onClick={() => setTab('videos')}
-              >
+            <div
+              onClick={() => (onOpenVideo ? onOpenVideo(recommendedHomeVideo) : setTab('videos'))}
+              className="bg-white rounded-3xl overflow-hidden shadow-soft border border-sand-100 hover:border-roseGold-200 transition-all cursor-pointer group"
+            >
+              <div className="relative aspect-video w-full bg-sand-200">
                 <img
                   src={recommendedHomeVideo.thumbnail}
                   alt={recommendedHomeVideo.titulo}
@@ -969,7 +970,12 @@ export default function HomeView({
 
                 <div className="pt-2 flex items-center justify-between border-t border-sand-100">
                   <button
-                    onClick={() => setTab('videos')}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onOpenVideo) onOpenVideo(recommendedHomeVideo);
+                      else setTab('videos');
+                    }}
                     className="w-full py-2.5 rounded-2xl bg-roseGold-400 hover:bg-roseGold-500 text-white text-xs font-bold transition shadow-md shadow-roseGold-200 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
