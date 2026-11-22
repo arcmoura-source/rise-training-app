@@ -287,6 +287,7 @@ export default function ProfileView({
   // Edit form state
   const [formData, setFormData] = useState({
     nome: profile.nome || 'Rita',
+    idade: profile.idade || 25,
     peso: profile.peso || 58.0,
     massaMuscular: profile.massaMuscular || 40.4,
     altura: profile.altura || 1.60,
@@ -308,6 +309,7 @@ export default function ProfileView({
     onUpdateProfile({
       ...profile,
       ...formData,
+      idade: parseInt(formData.idade) || profile.idade || 25,
       peso: parseFloat(formData.peso) || profile.peso,
       massaMuscular: parseFloat(formData.massaMuscular) || profile.massaMuscular,
       altura: parseFloat(formData.altura) || profile.altura,
@@ -419,11 +421,16 @@ export default function ProfileView({
               {profile.nome ? profile.nome.charAt(0).toUpperCase() : 'R'}
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h2 className="text-lg font-bold text-sand-500">{profile.nome}</h2>
                 <span className="text-xs font-bold text-roseGold-600 bg-roseGold-50 px-2 py-0.5 rounded-full border border-roseGold-200">
                   {profile.nivel || 'Intermédio'}
                 </span>
+                {profile.idade && (
+                  <span className="text-xs font-semibold text-sand-500 bg-cream-100 px-2 py-0.5 rounded-full border border-sand-200">
+                    {profile.idade} anos
+                  </span>
+                )}
               </div>
               <p className="text-xs text-sand-400 leading-tight mt-0.5">{profile.objetivo}</p>
             </div>
@@ -434,6 +441,7 @@ export default function ProfileView({
               onClick={() => {
                 setFormData({
                   nome: profile.nome || 'Ana',
+                  idade: profile.idade || 25,
                   peso: profile.peso || 58.0,
                   massaMuscular: profile.massaMuscular || 40.4,
                   altura: profile.altura || 1.60,
@@ -587,8 +595,19 @@ export default function ProfileView({
               </div>
             </div>
 
-            {/* Biometria (Peso, Massa Muscular, Altura) */}
-            <div className="grid grid-cols-3 gap-2 pt-1">
+            {/* Biometria (Idade, Peso, Massa Muscular, Altura) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              <div>
+                <label className="text-xs font-bold text-sand-400 uppercase">Idade</label>
+                <input
+                  type="number"
+                  min="12"
+                  max="100"
+                  value={formData.idade}
+                  onChange={(e) => setFormData({ ...formData, idade: e.target.value })}
+                  className="w-full mt-1 px-3 py-1.5 rounded-xl bg-cream-50 border border-sand-200 text-xs font-bold text-sand-500"
+                />
+              </div>
               <div>
                 <label className="text-xs font-bold text-sand-400 uppercase">Peso (kg)</label>
                 <input

@@ -58,6 +58,7 @@ export default function OnboardingQuiz({ onComplete }) {
   const [objetivoCustom, setObjetivoCustom] = useState('');
   const [diasSemanaAlvo, setDiasSemanaAlvo] = useState(4);
   const [nivel, setNivel] = useState('Intermédio');
+  const [idade, setIdade] = useState(30);
   const [peso, setPeso] = useState(60);
   const [altura, setAltura] = useState(1.65);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -149,6 +150,7 @@ export default function OnboardingQuiz({ onComplete }) {
     const newProfile = {
       id: 'perfil-' + Date.now(),
       nome: nome.trim() || 'Atleta',
+      idade: parseInt(idade) || 30,
       peso: parseFloat(peso) || 60,
       massaMuscular: parseFloat((peso * 0.68).toFixed(1)),
       altura: parseFloat(altura) || 1.65,
@@ -579,25 +581,40 @@ export default function OnboardingQuiz({ onComplete }) {
           </div>
         )}
 
-        {/* ── PASSO 5: BIOMETRIA (OPCIONAL) ── */}
+        {/* ── PASSO 5: IDADE & BIOMETRIA (OPCIONAL) ── */}
         {step === 5 && (
           <div className="space-y-4 animate-fade-in">
             <div className="space-y-1 text-center">
               <span className="text-xs font-bold uppercase tracking-wider text-roseGold-500">
-                Medidas Corporais
+                Idade & Medidas
               </span>
               <h2 className="text-2xl font-black text-sand-500 tracking-tight">
-                As tuas medidas
+                A tua idade e medidas
               </h2>
               <p className="text-xs text-sand-400">
-                Servem para calcular o teu IMC e calibrar as sugestões de peso do AI Coach.
+                Servem para calcular o teu IMC e adaptar as sugestões do AI Coach.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="bg-white p-4 rounded-3xl border border-sand-200 space-y-1 text-center shadow-soft">
+            <div className="grid grid-cols-3 gap-2.5 pt-2">
+              <div className="bg-white p-3.5 rounded-3xl border border-sand-200 space-y-1 text-center shadow-soft">
                 <label className="text-[10px] font-bold text-sand-400 uppercase tracking-wider block">
-                  Peso Atual (kg)
+                  Idade
+                </label>
+                <input
+                  type="number"
+                  min="12"
+                  max="100"
+                  value={idade}
+                  onChange={(e) => setIdade(e.target.value)}
+                  className="w-full text-center text-xl font-black text-sand-500 bg-transparent focus:outline-none"
+                />
+                <span className="text-[10px] text-sand-400 block">anos</span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-3xl border border-sand-200 space-y-1 text-center shadow-soft">
+                <label className="text-[10px] font-bold text-sand-400 uppercase tracking-wider block">
+                  Peso (kg)
                 </label>
                 <input
                   type="number"
@@ -609,7 +626,7 @@ export default function OnboardingQuiz({ onComplete }) {
                 <span className="text-[10px] text-sand-400 block">quilogramas</span>
               </div>
 
-              <div className="bg-white p-4 rounded-3xl border border-sand-200 space-y-1 text-center shadow-soft">
+              <div className="bg-white p-3.5 rounded-3xl border border-sand-200 space-y-1 text-center shadow-soft">
                 <label className="text-[10px] font-bold text-sand-400 uppercase tracking-wider block">
                   Altura (m)
                 </label>

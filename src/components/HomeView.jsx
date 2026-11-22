@@ -965,6 +965,27 @@ export default function HomeView({
                 </button>
               </div>
             </div>
+          ) : !recommendedGymWorkout ? (
+            <div className="bg-white rounded-3xl p-5 shadow-soft border border-sand-100 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-roseGold-50 border border-roseGold-100 text-roseGold-500 flex items-center justify-center mx-auto">
+                <Dumbbell className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-sand-500">
+                  Ainda não tens planos de ginásio
+                </h3>
+                <p className="text-xs text-sand-400 leading-relaxed">
+                  Cria a tua rotina personalizada ou pede ao AI Coach para gerar um plano de treino à tua medida.
+                </p>
+              </div>
+              <button
+                onClick={() => setTab('workouts')}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-roseGold-400 to-[#CF6E8E] text-white text-xs font-bold shadow-md shadow-roseGold-200 flex items-center justify-center gap-2 transition active:scale-95"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Criar / Gerar Meu Primeiro Treino</span>
+              </button>
+            </div>
           ) : (
             <div className="bg-white rounded-3xl p-5 shadow-soft border border-sand-100 space-y-3">
               {hasTrainedToday && (

@@ -193,6 +193,27 @@ export default function WorkoutsListView({
       </div>
 
       {/* Workout Cards */}
+      {workouts.length === 0 ? (
+        <div className="bg-white rounded-3xl p-6 shadow-soft border border-sand-100 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-roseGold-50 border border-roseGold-100 text-roseGold-500 flex items-center justify-center mx-auto">
+            <Dumbbell className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-extrabold text-sand-500">Ainda não tens treinos criados</h3>
+            <p className="text-xs text-sand-400 leading-relaxed max-w-xs mx-auto">
+              Cria a tua primeira rotina personalizada ou pede ao nosso AI Coach para gerar um plano à medida do teu nível e objetivo.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-roseGold-400 to-[#CF6E8E] hover:from-roseGold-500 hover:to-[#BD5C7E] text-white text-xs font-bold shadow-md shadow-roseGold-200 flex items-center justify-center gap-2 transition active:scale-[0.98]"
+          >
+            <Wand2 className="w-4 h-4" />
+            <span>Criar ou Gerar Treino com IA</span>
+          </button>
+        </div>
+      ) : (
       <div className="space-y-4">
         {workouts.map((w, index) => {
           const isExpanded = expandedId === w.id;
@@ -525,6 +546,7 @@ export default function WorkoutsListView({
           );
         })}
       </div>
+      )}
 
       {/* ── MODAL: Adicionar Novo Treino ── */}
       {showAddModal && (

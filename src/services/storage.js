@@ -211,8 +211,23 @@ export const switchActiveProfile = (profileId) => {
 };
 
 export const getWorkouts = () => {
+  const isRita = isRitaDomain();
   try {
     const data = localStorage.getItem(STORAGE_KEYS.WORKOUTS);
+
+    // No domínio de clientes (não-Rita): NUNCA injetar os planos pessoais da Rita
+    if (!isRita) {
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed)) return [];
+      const ritaDefaultIds = new Set(['treino-1', 'treino-2', 'treino-3', 'treino-4']);
+      const clientOnly = parsed.filter((w) => w && !ritaDefaultIds.has(w.id));
+      if (clientOnly.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(clientOnly));
+      }
+      return clientOnly;
+    }
+
     if (!data) return DEFAULT_WORKOUTS;
     let parsed = JSON.parse(data);
 
