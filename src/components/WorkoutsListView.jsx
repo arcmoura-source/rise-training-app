@@ -3,7 +3,7 @@ import {
   Dumbbell, Flame, Sparkles, Play, Plus, ChevronDown, ChevronUp,
   Clock, Trash2, X, Video, Pencil, Check, Save, Wand2, Loader2
 } from 'lucide-react';
-import { getMuscleIcon, MUSCLE_OPTIONS } from '../utils/muscleIcons';
+import { getMuscleIcon } from '../utils/muscleIcons';
 import { generateWorkoutWithAi } from '../services/workoutGenerator';
 
 export default function WorkoutsListView({
@@ -30,7 +30,6 @@ export default function WorkoutsListView({
   const [novaTag, setNovaTag] = useState('');
   const [novoFoco, setNovoFoco] = useState('');
   const [novaDuracao, setNovaDuracao] = useState('45 min');
-  const [novoMuscleIcon, setNovoMuscleIcon] = useState('🏋️‍♀️');
   const [exercicios, setExercicios] = useState([
     { nome: '', dica: '', series: defaultSeries() }
   ]);
@@ -57,7 +56,10 @@ export default function WorkoutsListView({
   const cancelEdit = () => { setEditingId(null); setEditDraft(null); };
 
   const saveEdit = () => {
-    onUpdateWorkout(editDraft);
+    onUpdateWorkout({
+      ...editDraft,
+      muscleIcon: getMuscleIcon(editDraft),
+    });
     setEditingId(null);
     setEditDraft(null);
   };
@@ -116,7 +118,6 @@ export default function WorkoutsListView({
         setNovaTag(generated.tag || '');
         setNovoFoco(generated.foco || '');
         setNovaDuracao(generated.duracaoEstimada || '45 min');
-        setNovoMuscleIcon(generated.muscleIcon || getMuscleIcon(generated));
         if (Array.isArray(generated.exercicios) && generated.exercicios.length > 0) {
           setExercicios(generated.exercicios);
         }
@@ -156,7 +157,7 @@ export default function WorkoutsListView({
       duracaoEstimada: novaDuracao.trim() || '45 min',
       cor: 'from-roseGold-400 to-roseGold-600',
       icone: 'Flame',
-      muscleIcon: novoMuscleIcon || getMuscleIcon({ titulo: novoTitulo, tag: novaTag, foco: novoFoco }),
+      muscleIcon: getMuscleIcon({ titulo: novoTitulo, tag: novaTag, foco: novoFoco, exercicios: list }),
       exercicios: list.map((ex, i) => ({
         id: `ex-${Date.now()}-${i}`,
         nome: ex.nome.trim() || `Exercício ${i + 1}`,
@@ -167,7 +168,7 @@ export default function WorkoutsListView({
 
     onAddWorkout(novo);
     setShowAddModal(false);
-    setNovoTitulo(''); setNovaTag(''); setNovoFoco(''); setNovaDuracao('45 min'); setNovoMuscleIcon('🏋️‍♀️');
+    setNovoTitulo(''); setNovaTag(''); setNovoFoco(''); setNovaDuracao('45 min');
     setAiPrompt(''); setAiSuccessMessage('');
     setExercicios([{ nome: '', dica: '', series: defaultSeries() }]);
     setExpandedId(novo.id);
@@ -322,29 +323,6 @@ export default function WorkoutsListView({
                           onChange={(e) => setEditDraft({ ...draft, duracaoEstimada: e.target.value })}
                           className="w-full mt-0.5 px-2.5 py-1.5 rounded-xl bg-cream-50 border border-sand-200 text-xs text-sand-500 focus:outline-none focus:border-roseGold-400"
                         />
-                      </div>
-                      <div className="col-span-2 pt-1">
-                        <label className="text-[9px] font-bold text-sand-400 uppercase block mb-1">Ícone do Músculo em Foco</label>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {MUSCLE_OPTIONS.map((opt) => {
-                            const isSelected = (draft.muscleIcon || getMuscleIcon(draft)) === opt.emoji;
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => setEditDraft({ ...draft, muscleIcon: opt.emoji })}
-                                className={`px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 border transition ${
-                                  isSelected
-                                    ? 'bg-roseGold-100 border-roseGold-400 text-roseGold-700 font-bold shadow-xs'
-                                    : 'bg-white border-sand-200 text-sand-600 hover:bg-cream-100'
-                                }`}
-                              >
-                                <span className="text-sm">{opt.emoji}</span>
-                                <span className="text-[11px]">{opt.id}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
                       </div>
                     </div>
                   )}
@@ -689,30 +667,6 @@ export default function WorkoutsListView({
                   onChange={(e) => setNovoFoco(e.target.value)}
                   className="w-full mt-1 px-3 py-2 rounded-xl bg-white border border-sand-200 text-xs text-sand-500 focus:outline-none focus:border-roseGold-400"
                 />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-sand-400 uppercase block mb-1">Ícone do Músculo em Foco</label>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {MUSCLE_OPTIONS.map((opt) => {
-                    const isSelected = (novoMuscleIcon || '🏋️‍♀️') === opt.emoji;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setNovoMuscleIcon(opt.emoji)}
-                        className={`px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 border transition ${
-                          isSelected
-                            ? 'bg-roseGold-100 border-roseGold-400 text-roseGold-700 font-bold shadow-xs'
-                            : 'bg-white border-sand-200 text-sand-600 hover:bg-cream-100'
-                        }`}
-                      >
-                        <span className="text-sm">{opt.emoji}</span>
-                        <span className="text-[11px]">{opt.id}</span>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               <div className="pt-2 border-t border-sand-200 space-y-2">
