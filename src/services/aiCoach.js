@@ -16,8 +16,11 @@ export const generateAiAdvice = async (
   const prompt = (userPrompt || '').trim();
   const promptLower = prompt.toLowerCase();
 
-  const nome = profile?.nome || 'Rita';
-  const objetivo = profile?.objetivo || 'Hipertrofia & Força (Quadríceps e Glúteos)';
+  const nome = profile?.nome || 'Atleta';
+  const idade = profile?.idade ? `${profile.idade} anos` : 'Não informada';
+  const altura = profile?.altura ? `${profile.altura} m` : 'Não informada';
+  const diasSemanaAlvo = profile?.diasSemanaAlvo || 4;
+  const objetivo = profile?.objetivo || 'Força, Condicionamento Geral & Resistência';
   const ondeTreina = profile?.ondeTreina || 'both';
   const nivel = profile?.nivel || 'Intermédio';
 
@@ -54,10 +57,7 @@ export const generateAiAdvice = async (
           })
           .join('\n');
       } else {
-        treinosDesc = `- Treino 1: Quadríceps & Pernas (Leg Extension, Leg Press 45º, Afundos Búlgaros, Goblet Squat)
-- Treino 2: Glúteos & Posterior (Hip Thrust na Máquina, Peso Morto Romeno RDL, Cadeira Abdutora, Mesa Flexora)
-- Treino 3: Superiores (Front Row, Lat Pulldown, Bicep Curl, Tricep Pushdown, Face Pull, Lateral Raise, Chest Press)
-- Treinos em casa: Vídeos de alta intensidade e força da growingannanas, Olivia Lawson, Heather Robertson e Caroline Girvan.`;
+        treinosDesc = `- Ainda não tem rotinas de ginásio criadas (treina por vídeos em casa ou está a criar o seu plano).`;
       }
 
       // Preparar histórico multi-turn da conversa
@@ -95,11 +95,14 @@ export const generateAiAdvice = async (
       ];
 
       const systemInstructionText = `És o Personal Trainer e AI Coach pessoal da ${nome}.
-Perfil da aluna:
+Perfil real da aluna:
 - Nome: ${nome}
+- Idade: ${idade}
+- Altura: ${altura}
 - Foco principal: ${objetivo}
 - Onde treina: ${ondeTreina === 'gym' ? 'Apenas Ginásio' : ondeTreina === 'home' ? 'Apenas Casa (com halteres e tapete)' : 'Ginásio e Casa'}
 - Nível de treino: ${nivel}
+- Meta semanal: ${diasSemanaAlvo} treinos por semana
 Treinos habituais dela no plano:
 ${treinosDesc}
 

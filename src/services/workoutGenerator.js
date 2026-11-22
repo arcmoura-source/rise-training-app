@@ -22,8 +22,11 @@ const GEMINI_MODELS = [
  */
 export async function generateWorkoutWithAi(promptText, profile = {}) {
   const userRequest = (promptText || '').trim();
-  const nome = profile.nome || 'Rita';
+  const nome = profile.nome || 'Atleta';
   const nivel = profile.nivel || 'Intermédio';
+  const idade = profile.idade ? `${profile.idade} anos` : 'Não informada';
+  const objetivo = profile.objetivo || 'Força, Tonificação & Resistência';
+  const ondeTreina = profile.ondeTreina || 'both';
 
   const apiKey =
     localStorage.getItem('gemini_api_key') ||
@@ -32,7 +35,7 @@ export async function generateWorkoutWithAi(promptText, profile = {}) {
 
   if (apiKey && apiKey.trim()) {
     try {
-      const systemInstruction = `És o AI Personal Trainer de elite da app Rise, focado no treino de força e hipertrofia feminina estética para a ${nome} (nível: ${nivel}).
+      const systemInstruction = `És o AI Personal Trainer de elite da app Rise, focado no treino de força e tonificação para a ${nome} (nível: ${nivel}, idade: ${idade}, objetivo: ${objetivo}, local: ${ondeTreina}).
 O teu papel é criar uma rotina de treino segura, altamente eficaz e biomecanicamente inteligente com base no pedido da aluna.
 
 DEVES RESPONDER ESTRITAMENTE EM JSON VÁLIDO (sem blocos markdown \`\`\`json, apenas o JSON puro) com a seguinte estrutura:
