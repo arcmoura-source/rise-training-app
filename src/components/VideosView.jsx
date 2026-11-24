@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Play, Clock, CheckCircle2, Search, X, ExternalLink, Plus,
-  Heart, Flame, Sparkles, ChevronDown, Check, Loader2, Link2, Trash2
+  Heart, Flame, Sparkles, ChevronDown, Check, Loader2, Link2, Trash2, ArrowLeft
 } from 'lucide-react';
 import { YOUTUBE_VIDEOS, CANAIS_FAVORITOS } from '../data/videoData';
 import confetti from 'canvas-confetti';
@@ -770,27 +770,48 @@ export default function VideosView({ profile, onLogVideoWorkout, history, initia
 
       {/* ── Active Video Player Modal ── */}
       {activeVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-sand-600/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl border border-sand-200 pb-5">
-            <div className="p-4 flex items-center justify-between border-b border-sand-100">
-              <div className="flex-1 pr-2">
-                <span className="text-xs font-bold text-roseGold-500">{activeVideo.canal}</span>
+        <div
+          onClick={() => setActiveVideo(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-sand-600/70 backdrop-blur-sm animate-fade-in overflow-y-auto"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl overflow-hidden max-w-lg w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-sand-200 pb-5 my-auto"
+          >
+            <div className="p-3.5 sm:p-4 flex items-center justify-between gap-2 border-b border-sand-100">
+              <button
+                type="button"
+                onClick={() => setActiveVideo(null)}
+                className="p-2 rounded-xl bg-cream-100 hover:bg-cream-200 text-sand-500 hover:text-sand-700 transition shrink-0 flex items-center gap-1"
+                title="Voltar atrás"
+                aria-label="Voltar atrás"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-bold text-roseGold-500 block truncate">{activeVideo.canal}</span>
                 <h3 className="text-sm font-bold text-sand-600 truncate">{activeVideo.titulo}</h3>
               </div>
-              <div className="flex items-center gap-1">
+
+              <div className="flex items-center gap-1 shrink-0">
                 <button
+                  type="button"
                   onClick={(e) => toggleLike(activeVideo.id, e)}
                   className={`p-2 rounded-xl transition ${
-                    likedIds.includes(activeVideo.id) ? 'text-roseGold-500' : 'text-sand-300'
+                    likedIds.includes(activeVideo.id) ? 'text-roseGold-500 bg-roseGold-50' : 'text-sand-300 hover:bg-cream-100'
                   }`}
                 >
                   <Heart className={`w-4 h-4 ${likedIds.includes(activeVideo.id) ? 'fill-current' : ''}`} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveVideo(null)}
-                  className="p-1 rounded-xl text-sand-400 hover:text-sand-600 hover:bg-cream-200"
+                  className="p-2 rounded-xl text-sand-400 hover:text-sand-600 hover:bg-cream-200 transition"
+                  title="Fechar vídeo"
+                  aria-label="Fechar vídeo"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
