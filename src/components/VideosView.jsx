@@ -804,15 +804,6 @@ export default function VideosView({ profile, onLogVideoWorkout, history, initia
                 >
                   <Heart className={`w-4 h-4 ${likedIds.includes(activeVideo.id) ? 'fill-current' : ''}`} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveVideo(null)}
-                  className="p-2 rounded-xl text-sand-400 hover:text-sand-600 hover:bg-cream-200 transition"
-                  title="Fechar vídeo"
-                  aria-label="Fechar vídeo"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
             </div>
 
