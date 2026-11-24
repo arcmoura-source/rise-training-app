@@ -69,18 +69,19 @@ export function analyzeRecentFeedback(history = []) {
     feedbackLower.includes('esgotad') ||
     recentExhaustingCount >= 2;
 
-  // Sinais de Dor Articular ou Desconforto
+  // Sinais de Dor Articular ou Desconforto (com fronteira de palavra para não confundir "dor" com "adorei"!)
+  const hasExplicitPainWord = (str) =>
+    str.includes('desconforto') ||
+    /\b(dor|dores|lesão|lesões|magoei|magoou|doer|dói)\b/i.test(str);
+
+  const hasJointMentionWithLowRating =
+    rating <= 3 &&
+    /\b(joelho|joelhos|lombar|ombro|ombros|pulso|pulsos|coluna|articula)/i.test(feedbackLower);
+
   const hasPainOrDiscomfort =
-    tagsLower.includes('desconforto') ||
-    tagsLower.includes('dor') ||
-    feedbackLower.includes('dor') ||
-    feedbackLower.includes('lesão') ||
-    feedbackLower.includes('joelho') ||
-    feedbackLower.includes('lombar') ||
-    feedbackLower.includes('ombro') ||
-    feedbackLower.includes('pulso') ||
-    feedbackLower.includes('coluna') ||
-    feedbackLower.includes('articula');
+    hasExplicitPainWord(tagsLower) ||
+    hasExplicitPainWord(feedbackLower) ||
+    hasJointMentionWithLowRating;
 
   // Se o treino anterior trabalhou pernas / glúteos
   const isLowerBody =
