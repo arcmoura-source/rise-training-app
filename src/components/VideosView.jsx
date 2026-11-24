@@ -157,7 +157,6 @@ export default function VideosView({ profile, onLogVideoWorkout, history, initia
   const [hiddenIds, setHiddenIds]       = useState(() => getHiddenVideos());
 
   const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [selectedCanal, setSelectedCanal]       = useState('Todos');
   const [searchTerm, setSearchTerm]             = useState('');
   const [activeVideo, setActiveVideo]           = useState(initialVideo || null);
 
@@ -238,7 +237,6 @@ export default function VideosView({ profile, onLogVideoWorkout, history, initia
   }, [allVideos, likedIds, profile?.nivel]);
 
   const categories = ['Todos', 'Alta Intensidade', 'Glúteos', 'Força', 'Pilates', 'Mobilidade'];
-  const canais = ['Todos', 'growingannanas', 'Olivia Lawson', 'Heather Robertson', 'Move With Nicole', 'Caroline Girvan', 'Pamela Reif'];
 
   const filteredVideos = useMemo(() => {
     const nivelLower = (profile?.nivel || 'Intermédio').toLowerCase();
@@ -258,15 +256,14 @@ export default function VideosView({ profile, onLogVideoWorkout, history, initia
       }
 
       const matchesCategory = selectedCategory === 'Todos' || v.categoria === selectedCategory;
-      const matchesCanal    = selectedCanal === 'Todos' || v.canal.toLowerCase() === selectedCanal.toLowerCase();
       const matchesSearch   = searchTerm === '' ||
         v.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.canal.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.foco.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesCategory && matchesCanal && matchesSearch;
+      return matchesCategory && matchesSearch;
     });
-  }, [smartSorted, selectedCategory, selectedCanal, searchTerm, showOnlyFavs, likedIds, hiddenIds, invalidYtIds, profile?.nivel]);
+  }, [smartSorted, selectedCategory, searchTerm, showOnlyFavs, likedIds, hiddenIds, invalidYtIds, profile?.nivel]);
 
   const toggleLike = (id, e) => {
     e.stopPropagation();
@@ -613,25 +610,6 @@ export default function VideosView({ profile, onLogVideoWorkout, history, initia
           <Heart className={`w-3.5 h-3.5 ${showOnlyFavs ? 'fill-current' : ''}`} />
           Favoritos
         </button>
-
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-          {canais.map((canal) => {
-            const isSel = selectedCanal.toLowerCase() === canal.toLowerCase();
-            return (
-              <button
-                key={canal}
-                onClick={() => setSelectedCanal(canal)}
-                className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition ${
-                  isSel
-                    ? 'bg-sand-500 text-white'
-                    : 'bg-cream-100 text-sand-400 hover:bg-cream-200'
-                }`}
-              >
-                {canal}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* ── Active Filters Summary ── */}
