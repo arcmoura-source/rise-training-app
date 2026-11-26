@@ -394,21 +394,46 @@ export default function HomeView({
     const isAdvanced = nivelLower.includes('avan');
     const isIntermediate = !isBeginner && !isAdvanced;
 
+    const userAge = profile?.idade ? Number(profile.idade) : 30;
+    const preferLowImpact = (userAge >= 50 && !isAdvanced) || userAge >= 60;
+
+    const isHighImpactVideo = (v) => {
+      const text = `${v.titulo || ''} ${v.descricao || ''} ${v.foco || ''}`.toLowerCase();
+      if (text.includes('no jumping') || text.includes('low impact') || text.includes('sem impacto')) {
+        return false;
+      }
+      return (
+        v.categoria === 'Alta Intensidade' ||
+        text.includes('hiit') ||
+        text.includes('hyrox') ||
+        text.includes('jump') ||
+        text.includes('plyo') ||
+        text.includes('tabata') ||
+        text.includes('explosiv')
+      );
+    };
+
     // Excluir vídeos com avaliação baixa (<= 2 estrelas) no histórico do utilizador
     const lowRatedIds = (history || [])
       .filter((h) => (h.tipo === 'video' || h.treinoId) && Number(h.rating) <= 2)
       .map((h) => h.treinoId);
 
-    // Se o utilizador reportou dor ou fadiga muscular, priorizar mobilidade / pilates ou zona de recuperação
+    // Se o utilizador reportou dor/fadiga ou tem >= 50 anos (não avançado), evitar impacto elevado na recomendação
     const areaPool = YOUTUBE_VIDEOS.filter((v) => {
       if (lowRatedIds.includes(v.id)) return false;
+      if ((preferLowImpact || feedbackAnalysis?.hasPainOrDiscomfort) && isHighImpactVideo(v)) {
+        return false;
+      }
       if (feedbackAnalysis?.hasPainOrDiscomfort) {
         return v.categoria === 'Mobilidade' || v.categoria === 'Pilates' || v.targetArea === target;
       }
       return v.targetArea === target;
     });
 
-    const pool = areaPool.length > 0 ? areaPool : YOUTUBE_VIDEOS.filter((v) => !lowRatedIds.includes(v.id));
+    const safePool = YOUTUBE_VIDEOS.filter(
+      (v) => !lowRatedIds.includes(v.id) && (!(preferLowImpact || feedbackAnalysis?.hasPainOrDiscomfort) || !isHighImpactVideo(v))
+    );
+    const pool = areaPool.length > 0 ? areaPool : (safePool.length > 0 ? safePool : YOUTUBE_VIDEOS.filter((v) => !lowRatedIds.includes(v.id)));
 
     // 1. First choice: Liked video matching targetArea and appropriate level
     const likedMatch = pool.find((v) => {
@@ -455,7 +480,7 @@ export default function HomeView({
       );
     }
     return pool[0] || YOUTUBE_VIDEOS[0];
-  }, [activeStrategy, likedIds, profile?.nivel, history, feedbackAnalysis]);
+  }, [activeStrategy, likedIds, profile?.nivel, profile?.idade, history, feedbackAnalysis]);
 
   // ── Dica Dinâmica do AI Coach (Adaptada ao Vídeo Sugerido, Pesos e Feedback) ───
   const currentAiTip = useMemo(() => {
